@@ -65,6 +65,7 @@
 #include "Weather/Weather.h"
 #include "Cinematics/CinematicMgr.h"
 #include "World/WorldState.h"
+#include "LFG/LFGMgr.h"
 
 #ifdef BUILD_AHBOT
 #include "AuctionHouseBot/AuctionHouseBot.h"
@@ -1501,6 +1502,7 @@ void World::Update(uint32 diff)
     sMapMgr.Update(diff);
     auto postMapTime = std::chrono::time_point_cast<std::chrono::milliseconds>(Clock::now());
     sBattleGroundMgr.Update(diff);
+    sLFGMgr.Update(diff);
     sOutdoorPvPMgr.Update(diff);
     sWorldState.Update(diff);
     auto postSingletonTime = std::chrono::time_point_cast<std::chrono::milliseconds>(Clock::now());

@@ -433,6 +433,7 @@ class WorldSession
 
         void HandleGameObjectUseOpcode(WorldPacket& recPacket);
         void HandleMeetingStoneJoinOpcode(WorldPacket& recPacket);
+        void HandleMeetingStoneLeaveOpcode(WorldPacket& recPacket);
         void HandleMeetingStoneInfoOpcode(WorldPacket& recPacket);
 
         void HandleNameQueryOpcode(WorldPacket& recvPacket);
@@ -708,6 +709,10 @@ class WorldSession
         void HandleCancelTempEnchantmentOpcode(WorldPacket& recv_data);
 
         void HandleSetTaxiBenchmarkOpcode(WorldPacket& recv_data);
+
+        // Meetingstone
+        void SendMeetingstoneFailed(uint8 status);
+        void SendMeetingstoneSetqueue(uint32 areaid, uint8 status);
 
 #ifdef ENABLE_PLAYERBOTS
         // Playerbots
