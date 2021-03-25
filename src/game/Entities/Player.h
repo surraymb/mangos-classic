@@ -911,6 +911,7 @@ class Player : public Unit
             m_summoner = summoner;
         }
         void SummonIfPossible(bool agree, ObjectGuid guid);
+        bool HasSummonOffer() { return !m_summoner.IsEmpty(); }
 
         bool Create(uint32 guidlow, const std::string& name, uint8 race, uint8 class_, uint8 gender, uint8 skin, uint8 face, uint8 hairStyle, uint8 hairColor, uint8 facialHair, uint8 outfitId);
 
@@ -1563,8 +1564,8 @@ class Player : public Unit
         void SendDuelCountdown(uint32 counter) const;
 
         void UninviteFromGroup();
-        static void RemoveFromGroup(Group* group, ObjectGuid guid);
-        void RemoveFromGroup() { RemoveFromGroup(GetGroup(), GetObjectGuid()); }
+        static void RemoveFromGroup(Group* group, ObjectGuid guid, uint8 method = GROUP_LEAVE);
+        void RemoveFromGroup(uint8 method = GROUP_LEAVE) { RemoveFromGroup(GetGroup(), GetObjectGuid(), method); }
         void SendUpdateToOutOfRangeGroupMembers();
 
         void SetInGuild(uint32 GuildId) { SetUInt32Value(PLAYER_GUILDID, GuildId); }

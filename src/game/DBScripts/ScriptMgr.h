@@ -135,6 +135,7 @@ enum ScriptCommand                                          // resSource, resTar
     SCRIPT_COMMAND_SPAWN_GROUP              = 51,           // dalalong = command
     SCRIPT_COMMAND_SET_GOSSIP_MENU          = 52,           // datalong = gossip_menu_id
     SCRIPT_COMMAND_SET_WORLDSTATE           = 53,           // dataint = worldstate id, dataint2 = new value, 
+    SCRIPT_COMMAND_MEETINGSTONE             = 54,           // datalong = area id
 };
 
 #define MAX_TEXT_ID 4                                       // used for SCRIPT_COMMAND_TALK, SCRIPT_COMMAND_EMOTE, SCRIPT_COMMAND_CAST_SPELL, SCRIPT_COMMAND_TERMINATE_SCRIPT
@@ -463,6 +464,11 @@ struct ScriptInfo
         {
             uint32 data[3];
         } raw;
+
+        struct                                              // SCRIPT_COMMAND_MEETINGSTONE (54)
+        {
+            uint32 areaId;                                  // datalong
+        } meetingstone;
     };
 
     // Buddy system (entry can be npc or go entry, depending on command)

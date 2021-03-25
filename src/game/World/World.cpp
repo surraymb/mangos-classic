@@ -67,6 +67,7 @@
 #include "World/WorldState.h"
 #include "Maps/TransportMgr.h"
 #include "Anticheat/Anticheat.hpp"
+#include "LFG/LFGMgr.h"
 
 #ifdef BUILD_AHBOT
  #include "AuctionHouseBot/AuctionHouseBot.h"
@@ -718,6 +719,13 @@ void World::LoadConfigSettings(bool reload)
 
     setConfig(CONFIG_BOOL_AUTO_DOWNRANK,              "AutoDownrank", false);
 
+    setConfig(CONFIG_FLOAT_WAREFFORT_RATES,           "WarEffort.Rates", 1.0f);
+    setConfig(CONFIG_BOOL_WAREFFORT_ENABLE,           "WarEffort.Enable", false);
+
+    setConfig(CONFIG_BOOL_LFG_MATCHMAKING,            "LFG.Matchmaking", false);
+    setConfig(CONFIG_BOOL_LFG_TELEPORT,               "LFG.Teleport", false);
+    setConfig(CONFIG_UINT32_LFG_MATCHMAKING_TIMER,    "LFG.MatchmakingTimer", 600);
+
     m_relocation_ai_notify_delay = sConfig.GetIntDefault("Visibility.AIRelocationNotifyDelay", 1000u);
     m_relocation_lower_limit_sq = pow(sConfig.GetFloatDefault("Visibility.RelocationLowerLimit", 10), 2);
 
@@ -1231,6 +1239,9 @@ void World::SetInitialWorldSettings()
     sLog.outString(">>> Localization strings loaded");
     sLog.outString();
 
+    sLog.outString("Loading Meeting Stones...");            // After load all static data
+    sLFGMgr.LoadMeetingStones();
+
     ///- Load dynamic data tables from the database
     sLog.outString("Loading Auctions...");
     sAuctionMgr.LoadAuctionItems();
@@ -1573,6 +1584,7 @@ void World::Update(uint32 diff)
     auto postMapTime = std::chrono::time_point_cast<std::chrono::milliseconds>(Clock::now());
 #endif
     sBattleGroundMgr.Update(diff);
+    sLFGMgr.Update(diff);
     sOutdoorPvPMgr.Update(diff);
     sWorldState.Update(diff);
 #ifdef BUILD_METRICS
