@@ -1208,6 +1208,9 @@ void World::SetInitialWorldSettings()
     sLog.outString(">>> Localization strings loaded");
     sLog.outString();
 
+    sLog.outString("Loading Meeting Stones...");            // After load all static data
+    sLFGMgr.LoadMeetingStones();
+
     ///- Load dynamic data tables from the database
     sLog.outString("Loading Auctions...");
     sAuctionMgr.LoadAuctionItems();

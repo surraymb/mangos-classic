@@ -103,7 +103,11 @@ void LFGQueue::AddToQueue(Player* leader, uint32 queueAreaID)
 
         i_Player.team = leader->GetTeam();
         i_Player.areaId = queueAreaID;
+#ifdef ENABLE_PLAYERBOTS
+        i_Player.hasQueuePriority = !leader->GetPlayerbotAI();
+#else
         i_Player.hasQueuePriority = false;
+#endif
         i_Player.CalculateRoles(static_cast<Classes>(leader->getClass()));
         i_Player.name = leader->GetName();
 
@@ -473,6 +477,11 @@ bool LFGQueue::IsPlayerInQueue(ObjectGuid const& plrGuid) const
     return m_QueuedPlayers.find(plrGuid) != m_QueuedPlayers.end();
 }
 
+bool LFGQueue::IsGroupInQueue(uint32 groupId) const
+{
+    return m_QueuedGroups.find(groupId) != m_QueuedGroups.end();
+}
+
 void LFGQueue::RemovePlayerFromQueue(ObjectGuid const& plrGuid, PlayerLeaveMethod leaveMethod)
 {
     QueuedPlayersMap::iterator iter = m_QueuedPlayers.find(plrGuid);
@@ -537,6 +546,72 @@ void LFGQueue::FindInArea(std::list<ObjectGuid>& players, uint32 area, uint32 te
         if (itr.second.areaId == area && itr.second.team == team)
             players.push_back(itr.first);
     }
+}
+
+void LFGQueue::GetPlayerQueueInfo(LFGPlayerQueueInfo* info, ObjectGuid const& plrGuid)
+{
+    QueuedPlayersMap::iterator iter = m_QueuedPlayers.find(plrGuid);
+    if (iter != m_QueuedPlayers.end())
+        *info = iter->second;
+
+    return;
+}
+
+void LFGQueue::GetGroupQueueInfo(LFGGroupQueueInfo* info, uint32 groupId)
+{
+    QueuedGroupsMap::iterator iter = m_QueuedGroups.find(groupId);
+    if (iter != m_QueuedGroups.end())
+        *info = iter->second;
+
+    return;
+}
+
+void LFGQueue::LoadMeetingStones()
+{
+    m_MeetingStonesMap.clear();
+    uint32 count = 0;
+    for (uint32 i = 0; i < sGOStorage.GetMaxEntry(); ++i)
+    {
+        auto data = sGOStorage.LookupEntry<GameObjectInfo>(i);
+        if (data && data->type == GAMEOBJECT_TYPE_MEETINGSTONE)
+        {
+            AreaTableEntry const* area = GetAreaEntryByAreaID(data->meetingstone.areaID);
+            if (area)
+            {
+                AreaTableEntry const* areaEntry = GetAreaEntryByAreaID(data->meetingstone.areaID);
+                MeetingStoneInfo info;
+                info.area = data->meetingstone.areaID;
+                info.minlevel = data->meetingstone.minLevel;
+                info.maxlevel = data->meetingstone.maxLevel;
+                info.name = area->area_name[0];
+                m_MeetingStonesMap.insert(std::make_pair(data->id, info));
+                sLog.outDetail(">> Loaded Meeting Stone Entry:%d, Area:%d, Level:%d - %d, Name:%s", i, info.area, info.minlevel, info.maxlevel, info.name);
+                count++;
+            }
+        }
+    }
+
+    sLog.outString(">> Loaded %u Meeting Stones", count);
+    sLog.outString();
+}
+
+MeetingStoneSet LFGQueue::GetDungeonsForPlayer(Player* player)
+{
+    MeetingStoneSet list;
+    uint32 level = player->getLevel();
+    for (MeetingStonesMap::iterator it = m_MeetingStonesMap.begin(); it != m_MeetingStonesMap.end(); ++it)
+    {
+        MeetingStoneInfo data = it->second;
+
+        if (data.maxlevel && data.maxlevel < level)
+            continue;
+
+        if (data.minlevel && data.minlevel > level)
+            continue;
+
+        list.insert(list.end(), data);
+    }
+    return list;
 }
 
 void LFGQueue::BuildSetQueuePacket(WorldPacket& data, uint32 areaId, uint8 status)

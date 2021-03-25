@@ -84,6 +84,16 @@ struct LFGGroupQueueInfo
     uint32 groupTimer;
 };
 
+struct MeetingStoneInfo
+{
+    uint32 area;
+    uint32 minlevel;
+    uint32 maxlevel;
+    char*  name;
+};
+
+typedef std::vector<MeetingStoneInfo> MeetingStoneSet;
+
 class LFGQueue
 {
     public:
@@ -93,10 +103,16 @@ class LFGQueue
         void AddToQueue(Player* leader, uint32 queAreaID);
         void RestoreOfflinePlayer(Player* player);
         bool IsPlayerInQueue(ObjectGuid const& plrGuid) const;
+        bool IsGroupInQueue(uint32 groupId) const;
         void RemovePlayerFromQueue(ObjectGuid const& plrGuid, PlayerLeaveMethod leaveMethod = PLAYER_CLIENT_LEAVE); // 0 == by default system (cmsg, leader leave), 1 == by lfg system (no need report text you left queu)
         void RemoveGroupFromQueue(uint32 groupId, GroupLeaveMethod leaveMethod = GROUP_CLIENT_LEAVE);
         void Update(uint32 diff);
         void UpdateGroup(uint32 groupId);
+        void GetPlayerQueueInfo(LFGPlayerQueueInfo* info, ObjectGuid const& plrGuid);
+        void GetGroupQueueInfo(LFGGroupQueueInfo* info, uint32 groupId);
+
+        void LoadMeetingStones();
+        MeetingStoneSet GetDungeonsForPlayer(Player* player);
 
         static void BuildSetQueuePacket(WorldPacket& data, uint32 areaId, uint8 status);
         static void BuildMemberAddedPacket(WorldPacket& data, ObjectGuid plrGuid);
@@ -121,6 +137,8 @@ class LFGQueue
 
         uint32 _groupSize = 5;
 
+        typedef std::map<uint32, MeetingStoneInfo> MeetingStonesMap;
+        MeetingStonesMap m_MeetingStonesMap;
 };
 
 #define sLFGMgr MaNGOS::Singleton<LFGQueue>::Instance()
