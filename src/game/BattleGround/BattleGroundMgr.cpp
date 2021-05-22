@@ -1044,10 +1044,9 @@ void BattleGroundMgr::BuildPvpLogDataPacket(WorldPacket& data, BattleGround* bg)
 
         Player* plr = sObjectMgr.GetPlayer(itr->first);
 
-        data << uint32(plr ? plr->GetHonorRankInfo().visualRank : 0);
+        data << uint32(plr ? plr->GetHonorRankInfo().rank : 4);
         data << uint32(itr->second->killingBlows);
         data << uint32(itr->second->honorableKills);
-        data << uint32(itr->second->dishonorableKills);
         data << uint32(itr->second->deaths);
         data << uint32(itr->second->bonusHonor);
 
