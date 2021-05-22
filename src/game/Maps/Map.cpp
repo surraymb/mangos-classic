@@ -803,8 +803,7 @@ void Map::Update(const uint32& t_diff)
 #endif
 }
 
-}
-
+#ifdef ENABLE_PLAYERBOTS
 bool Map::HasRealPlayers()
 {
     for (m_mapRefIter = m_mapRefManager.begin(); m_mapRefIter != m_mapRefManager.end(); ++m_mapRefIter)
