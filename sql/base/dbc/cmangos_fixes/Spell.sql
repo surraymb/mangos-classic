@@ -147,6 +147,9 @@ UPDATE spell_template SET AttributesEx=32, AttributesEx3=131072 WHERE id=28441; 
 
 UPDATE `spell_template` SET `EffectImplicitTargetA1` = 6 WHERE `Id` IN (25744,25787);
 
+-- Cantation of Manifestation 9095 - insane radius 12 - 100y reduced to 13-10y
+UPDATE spell_template SET EffectRadiusIndex1=13 WHERE id=9095;
+
 -- Draco-Incarcinatrix 900
 UPDATE spell_template SET EffectImplicitTargetA1=38 WHERE id=16007; -- 46
 
@@ -186,3 +189,8 @@ UPDATE spell_template SET AttributesEx=AttributesEx|1024 WHERE Id IN(21740,21921
 
 -- AQ40 - C'Thun - Summon Mouth Tentacles - restricted to one target
 UPDATE spell_template SET MaxAffectedTargets=1 WHERE Id=26237;
+
+-- Wandering Plague (player version): as per parent spell tooltip should only targets friendly units, not every units nor self
+-- SPELL_ATTR_EX_CANT_TARGET_SELF + TARGET_UNIT_ENEMY_NEAR_CASTER (parent spell caster is hostile to player and player's friends)
+-- Note: could this be possibly handled through unimplemented SPELL_ATTR_EX_UNK11 ?
+UPDATE spell_template SET `AttributesEx`=AttributesEx|0x00080000, EffectImplicitTargetA1=2, EffectImplicitTargetA2=2, EffectImplicitTargetA3=2 WHERE Id=3439;

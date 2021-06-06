@@ -173,7 +173,17 @@ BattleGround::BattleGround(): m_buffChange(false), m_startDelayTime(0), m_startM
     m_status            = STATUS_NONE;
     m_clientInstanceId  = 0;
     m_endTime           = 0;
+    m_bracketId         = BG_BRACKET_ID_TEMPLATE;
+    m_invitedAlliance   = 0;
+    m_invitedHorde      = 0;
     m_winner            = WINNER_NONE;
+    m_startTime         = 0;
+    m_validStartPositionTimer = 0;
+    m_events            = 0;
+    m_name              = "";
+    m_levelMin          = 0;
+    m_levelMax          = 0;
+    m_hasBgFreeSlotQueue = false;
 
     m_maxPlayersPerTeam = 0;
     m_maxPlayers        = 0;
@@ -288,6 +298,9 @@ void BattleGround::Update(uint32 diff)
         {
             if (itr->second.offlineRemoveTime <= sWorld.GetGameTime())
             {
+                // add deserter at next login
+                CharacterDatabase.PExecute("UPDATE characters SET at_login = at_login | '%u' WHERE guid = '%u'", uint32(AT_LOGIN_ADD_BG_DESERTER), itr->first.GetCounter());
+
                 RemovePlayerAtLeave(itr->first, true, true);// remove player from BG
                 m_offlineQueue.pop_front();                 // remove from offline queue
                 // do not use itr for anything, because it is erased in RemovePlayerAtLeave()

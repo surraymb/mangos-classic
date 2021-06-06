@@ -381,13 +381,6 @@ void Spell::EffectDummy(SpellEffectIndex eff_idx)
         {
             switch (m_spellInfo->Id)
             {
-                case 2400:                                  // Transfer Powers
-                {
-                    if (unitTarget)
-                        m_caster->CastSpell(unitTarget, 26565, TRIGGERED_OLD_TRIGGERED);   // Heal Brethren
-
-                    return;
-                }
                 case 3360:                                  // Curse of the Eye
                 {
                     if (unitTarget)
@@ -1397,12 +1390,6 @@ void Spell::EffectDummy(SpellEffectIndex eff_idx)
                     m_caster->SetHealth(m_caster->GetHealth() + m_caster->GetMaxHealth() * 0.05f); // Gain 5% heal
                     return;
                 }
-                case 28307:                                 // Hateful Strike Primer
-                {
-                    // Target is filtered in Spell::FilterTargetMap
-                    m_caster->CastSpell(unitTarget, 28308, TRIGGERED_NONE); // Hateful Strike
-                    return;
-                }
                 case 28359:                                 // Trigger Teslas
                 {
                     if (unitTarget)
@@ -1423,7 +1410,7 @@ void Spell::EffectDummy(SpellEffectIndex eff_idx)
                 }
                 case 28697:                                 // Forgiveness
                 {
-                    unitTarget->CastSpell(nullptr, 3617, TRIGGERED_OLD_TRIGGERED); // guessed suicide spell
+                    unitTarget->CastSpell(nullptr, 29266, TRIGGERED_OLD_TRIGGERED); // guessed permanent feign death spell
                     return;
                 }
                 case 28961:                                 // Summon Corpse Scarabs (10)
@@ -1559,21 +1546,6 @@ void Spell::EffectDummy(SpellEffectIndex eff_idx)
                     if (m_caster->HasAura(9634)) // If in Dire Bear form only 16%
                         reductionMod = -16;
                     m_caster->CastCustomSpell(nullptr, 25503, &reductionMod, nullptr, nullptr, TRIGGERED_OLD_TRIGGERED);
-                    return;
-                }
-                case 29201:                                 // Loatheb Corrupted Mind triggered sub spells
-                {
-                    uint32 spellid = 0;
-                    switch (unitTarget->getClass())
-                    {
-                        case CLASS_PALADIN: spellid = 29196; break;
-                        case CLASS_PRIEST: spellid = 29185; break;
-                        case CLASS_SHAMAN: spellid = 29198; break;
-                        case CLASS_DRUID: spellid = 29194; break;
-                        default: break;
-                    }
-                    if (spellid != 0)
-                        m_caster->CastSpell(unitTarget, spellid, TRIGGERED_OLD_TRIGGERED, nullptr);
                     return;
                 }
             }
@@ -2384,7 +2356,7 @@ void Spell::EffectEnergize(SpellEffectIndex eff_idx)
     switch (m_spellInfo->Id)
     {
         case 5530:
-            if (m_caster->getClass() == CLASS_ROGUE) // Warrior and rogue use same spell, on rogue not supposed to give resource, WTF blizzard
+            if (m_caster->getClass() == CLASS_ROGUE) // Warrior and rogue use same spell, on rogue not supposed to give resource, WTF game devs?!
                 return;
             break;
         case 9512:                                          // Restore Energy
@@ -4313,18 +4285,6 @@ void Spell::EffectScriptEffect(SpellEffectIndex eff_idx)
                     m_caster->CastSpell(unitTarget, spells[urand(0, 1)], TRIGGERED_OLD_TRIGGERED);
                     return;
                 }
-                case 26275:                                 // PX-238 Winter Wondervolt TRAP
-                {
-                    uint32 spells[4] = {26272, 26157, 26273, 26274};
-
-                    // check presence
-                    for (int j = 0; j < 4; ++j)
-                        if (unitTarget->HasAura(spells[j], EFFECT_INDEX_0))
-                            return;
-
-                    unitTarget->CastSpell(unitTarget, spells[urand(0, 3)], TRIGGERED_OLD_TRIGGERED);
-                    return;
-                }
                 case 26465:                                 // Mercurial Shield - need remove one 26464 Mercurial Shield aura
                     unitTarget->RemoveAuraHolderFromStack(26464);
                     return;
@@ -4564,11 +4524,6 @@ void Spell::EffectScriptEffect(SpellEffectIndex eff_idx)
                 {
                     if (unitTarget && unitTarget->GetTypeId() == TYPEID_UNIT)
                         unitTarget->CastSpell(nullptr, 29108, TRIGGERED_OLD_TRIGGERED);  // Kill Web Wrap
-                    return;
-                }
-                case 28732:                                 // Widow Embrace
-                {
-                    m_caster->CastSpell(nullptr, 28748, TRIGGERED_OLD_TRIGGERED);       // Self suicide
                     return;
                 }
                 case 29336:                                 // Despawn Buffet
@@ -5391,7 +5346,10 @@ void Spell::EffectResurrect(SpellEffectIndex eff_idx)
             m_caster->GetTypeId() == TYPEID_PLAYER ? "" : m_caster->GetNameForLocaleIdx(player->GetSession()->GetSessionDbLocaleIndex()));
     }
 
-    m_spellLog.AddLog(uint32(m_spellInfo->Effect[eff_idx]), unitTarget->GetObjectGuid());
+    if (unitTarget)
+        m_spellLog.AddLog(uint32(m_spellInfo->Effect[eff_idx]), unitTarget->GetObjectGuid());
+    else if (corpseTarget)
+        m_spellLog.AddLog(uint32(m_spellInfo->Effect[eff_idx]), corpseTarget->GetObjectGuid());
 }
 
 void Spell::EffectAddExtraAttacks(SpellEffectIndex /*eff_idx*/)

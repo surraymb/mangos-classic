@@ -451,7 +451,7 @@ LootSlotType LootItem::GetSlotTypeForSharedLoot(Player const* player, Loot const
                 if (!isUnderThreshold && lootItemType == LOOTITEM_TYPE_CONDITIONNAL && loot->m_lootMethod == MASTER_LOOT)
                     break;
 
-                if (loot->m_isChest)
+                if (loot->m_isChest || loot->m_lootType == LOOT_FISHINGHOLE)
                     return LOOT_SLOT_NORMAL;
 
                 if (isBlocked)
@@ -473,7 +473,7 @@ LootSlotType LootItem::GetSlotTypeForSharedLoot(Player const* player, Loot const
         {
             if (!isBlocked)
             {
-                if (loot->m_isChest)
+                if (loot->m_isChest || loot->m_lootType == LOOT_FISHINGHOLE)
                     return LOOT_SLOT_NORMAL;
 
                 if (isReleased || currentLooterPass || player->GetObjectGuid() == loot->m_currentLooterGuid)
@@ -507,7 +507,7 @@ LootSlotType LootItem::GetSlotTypeForSharedLoot(Player const* player, Loot const
         }
         case ROUND_ROBIN:
         {
-            if (loot->m_isChest)
+            if (loot->m_isChest || loot->m_lootType == LOOT_FISHINGHOLE)
                 return LOOT_SLOT_NORMAL;
 
             if (isReleased || currentLooterPass || player->GetObjectGuid() == loot->m_currentLooterGuid)
@@ -1028,6 +1028,9 @@ bool Loot::CanLoot(Player const* player)
         return true;
 
     if (m_lootMethod == NOT_GROUP_TYPE_LOOT || m_lootMethod == FREE_FOR_ALL)
+        return true;
+
+    if (m_lootType == LOOT_FISHINGHOLE)
         return true;
 
     if (m_haveItemOverThreshold)

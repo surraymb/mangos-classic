@@ -22,13 +22,16 @@
 #include "PathFinder.h"
 #include "Log.h"
 #include "World/World.h"
-#include "Metric/Metric.h"
 #include "Entities/Transports.h"
-
 #include <Detour/Include/DetourCommon.h>
 #include <Detour/Include/DetourMath.h>
-#include <limits>
 
+#ifdef BUILD_METRICS
+ #include "Metric/Metric.h"
+#endif
+
+#include <limits>
+////////////////// PathFinder //////////////////
  ////////////////// PathFinder //////////////////
 PathFinder::PathFinder() :
     m_polyLength(0), m_type(PATHFIND_BLANK),
@@ -289,8 +292,7 @@ dtPolyRef PathFinder::getPathPolyByPosition(const dtPolyRef* polyPath, uint32 po
         return INVALID_POLYREF;
 
     dtPolyRef nearestPoly = INVALID_POLYREF;
-    float minDist2d = std::numeric_limits<float>::max();
-    float minDist3d = 0.0f;
+    float minDist3d = std::numeric_limits<float>::max();
 
     for (uint32 i = 0; i < polyPathSize; ++i)
     {
@@ -298,22 +300,21 @@ dtPolyRef PathFinder::getPathPolyByPosition(const dtPolyRef* polyPath, uint32 po
         if (dtStatusFailed(m_navMeshQuery->closestPointOnPoly(polyPath[i], point, closestPoint, nullptr)))
             continue;
 
-        float d = dtVdist2DSqr(point, closestPoint);
-        if (d < minDist2d)
+        float d = dtVdistSqr(point, closestPoint);
+        if (d < minDist3d)
         {
-            minDist2d = d;
+            minDist3d = d;
             nearestPoly = polyPath[i];
-            minDist3d = dtVdistSqr(point, closestPoint);
         }
 
-        if (minDist2d < 1.0f) // shortcut out - close enough for us
+        if (minDist3d < 1.0f) // shortcut out - close enough for us
             break;
     }
 
     if (distance)
         *distance = dtMathSqrtf(minDist3d);
 
-    return (minDist2d < 3.0f) ? nearestPoly : INVALID_POLYREF;
+    return (minDist3d < 3.0f) ? nearestPoly : INVALID_POLYREF;
 }
 
 dtPolyRef PathFinder::getPolyByLocation(const float* point, float* distance) const

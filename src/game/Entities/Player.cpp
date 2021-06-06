@@ -552,7 +552,7 @@ Player::Player(WorldSession* session): Unit(), m_taxiTracker(*this), m_mover(thi
 
     m_cinematic = 0;
 
-    PlayerTalkClass = new PlayerMenu(GetSession());
+    m_playerMenu =  std::make_unique<PlayerMenu>(GetSession());
     m_currentBuybackSlot = BUYBACK_SLOT_START;
 
     m_WeeklyQuestChanged = false;
@@ -662,8 +662,6 @@ Player::~Player()
     for (ItemMap::const_iterator iter = mMitems.begin(); iter != mMitems.end(); ++iter)
         delete iter->second;                                // if item is duplicated... then server may crash ... but that item should be deallocated
 
-    delete PlayerTalkClass;
-
     if (m_transport)
     {
         m_transport->RemovePassenger(this);
@@ -717,6 +715,39 @@ void Player::CleanupsBeforeDelete()
     sOutdoorPvPMgr.HandlePlayerLeaveZone(this, m_zoneUpdateId);
 
     Unit::CleanupsBeforeDelete();
+}
+
+bool Player::ValidateAppearance(uint8 race, uint8 class_, uint8 gender, uint8 hairID, uint8 hairColor, uint8 faceID, uint8 facialHair, uint8 skinColor, bool create /*=false*/)
+{
+    // For Skin type is always 0
+    CharSectionsEntry const* skinEntry = GetCharSectionEntry(race, SECTION_TYPE_SKIN, gender, 0, skinColor);
+    if (!skinEntry)
+        return false;
+
+    // Skin Color defined as Face color, too
+    CharSectionsEntry const* faceEntry = GetCharSectionEntry(race, SECTION_TYPE_FACE, gender, faceID, skinColor);
+    if (!faceEntry)
+        return false;
+
+    // Check Hair
+    CharSectionsEntry const* hairEntry = GetCharSectionEntry(race, SECTION_TYPE_HAIR, gender, hairID, hairColor);
+    if (!hairEntry)
+        return false;
+
+    // These combinations don't have an entry of Type SECTION_TYPE_FACIAL_HAIR, exclude them from that check
+    bool const excludeCheck = (race == RACE_TAUREN) || (gender == GENDER_FEMALE && race != RACE_NIGHTELF && race != RACE_UNDEAD);
+    if (!excludeCheck)
+    {
+        CharSectionsEntry const* facialHairEntry = GetCharSectionEntry(race, SECTION_TYPE_FACIAL_HAIR, gender, facialHair, hairColor);
+        if (!facialHairEntry)
+            return false;
+    }
+
+    CharacterFacialHairStylesEntry const* entry = GetCharFacialHairEntry(race, gender, facialHair);
+    if (!entry)
+        return false;
+
+    return true;
 }
 
 bool Player::Create(uint32 guidlow, const std::string& name, uint8 race, uint8 class_, uint8 gender, uint8 skin, uint8 face, uint8 hairStyle, uint8 hairColor, uint8 facialHair, uint8 /*outfitId */)
@@ -2139,7 +2170,7 @@ void Player::ProcessDelayedOperations()
         SaveToDB();
 
     if (m_DelayedOperations & DELAYED_SPELL_CAST_DESERTER)
-        CastSpell(this, 26013, TRIGGERED_OLD_TRIGGERED);               // Deserter
+        CastSpell(this, SPELL_ID_BATTLEGROUND_DESERTER, TRIGGERED_OLD_TRIGGERED);               // Deserter
 
     // we have executed ALL delayed ops, so clear the flag
     m_DelayedOperations = 0;
@@ -4169,8 +4200,9 @@ void Player::DeleteFromDB(ObjectGuid playerguid, uint32 accountId, bool updateRe
                     if (has_items)
                     {
                         // data needs to be at first place for Item::LoadFromDB
-                        //                                                          0          1            2                3      4         5        6      7             8                 9           10          11         12             
-                        QueryResult* resultItems = CharacterDatabase.PQuery("SELECT itemEntry, creatorGuid, giftCreatorGuid, count, duration, charges, flags, enchantments, randomPropertyId, durability, itemTextId, item_guid, item_template FROM mail_items JOIN item_instance ON item_guid = guid WHERE mail_id='%u'", mail_id);                        if (resultItems)
+                        //                                                          0          1            2                3      4         5        6      7             8                 9           10          11         12
+                        QueryResult* resultItems = CharacterDatabase.PQuery("SELECT itemEntry, creatorGuid, giftCreatorGuid, count, duration, charges, flags, enchantments, randomPropertyId, durability, itemTextId, item_guid, item_template FROM mail_items JOIN item_instance ON item_guid = guid WHERE mail_id='%u'", mail_id);
+                        if (resultItems)
                         {
                             do
                             {
@@ -7864,7 +7896,7 @@ uint8 Player::FindEquipSlot(ItemPrototype const* proto, uint32 slot, bool swap) 
                 // in both scenarios, a swap is required
                 if (currentSlot == EQUIPMENT_SLOT_OFFHAND && (IsTwoHandUsed() || proto->InventoryType == INVTYPE_2HWEAPON))
                     continue;
-                
+
                 return currentSlot;
             }
         }
@@ -11436,10 +11468,9 @@ void Player::SendNewItem(Item* item, uint32 count, bool received, bool created, 
 
 void Player::PrepareGossipMenu(WorldObject* pSource, uint32 menuId)
 {
-    PlayerMenu* pMenu = PlayerTalkClass;
-    pMenu->ClearMenus();
+    m_playerMenu->ClearMenus();
 
-    pMenu->GetGossipMenu().SetMenuId(menuId);
+    m_playerMenu->GetGossipMenu().SetMenuId(menuId);
 
     GossipMenuItemsMapBounds pMenuItemBounds = sObjectMgr.GetGossipMenuItemsMapBounds(menuId);
 
@@ -11520,7 +11551,7 @@ void Player::PrepareGossipMenu(WorldObject* pSource, uint32 menuId)
                     break;
                 case GOSSIP_OPTION_TAXIVENDOR:
                     if (GetSession()->SendLearnNewTaxiNode(pCreature))
-                        pMenu->GetGossipMenu().SetDiscoveredNode();
+                        m_playerMenu->GetGossipMenu().SetDiscoveredNode();
                     break;
                 case GOSSIP_OPTION_BATTLEFIELD:
                     if (!pCreature->CanInteractWithBattleMaster(this, false))
@@ -11633,8 +11664,8 @@ void Player::PrepareGossipMenu(WorldObject* pSource, uint32 menuId)
                 strOptionText.append(")");
             }
 
-            pMenu->GetGossipMenu().AddMenuItem(gossipMenu.option_icon, strOptionText, 0, gossipMenu.option_id, strBoxText, gossipMenu.box_coded);
-            pMenu->GetGossipMenu().AddGossipMenuItemData(gossipMenu.action_menu_id, gossipMenu.action_poi_id, gossipMenu.action_script_id);
+            m_playerMenu->GetGossipMenu().AddMenuItem(gossipMenu.option_icon, strOptionText, 0, gossipMenu.option_id, strBoxText, gossipMenu.box_coded);
+            m_playerMenu->GetGossipMenu().AddGossipMenuItemData(gossipMenu.action_menu_id, gossipMenu.action_poi_id, gossipMenu.action_script_id);
         }
     }
 
@@ -11663,8 +11694,8 @@ void Player::SendPreparedGossip(WorldObject* pSource)
     if (!pSource)
         return;
 
-    GossipMenu gossipMenu = PlayerTalkClass->GetGossipMenu();
-    QuestMenu questMenu = PlayerTalkClass->GetQuestMenu();
+    GossipMenu gossipMenu = m_playerMenu->GetGossipMenu();
+    QuestMenu questMenu = m_playerMenu->GetQuestMenu();
 
     if (pSource->GetTypeId() == TYPEID_UNIT)
     {
@@ -11697,12 +11728,12 @@ void Player::SendPreparedGossip(WorldObject* pSource)
     if (uint32 menuId = gossipMenu.GetMenuId())
         textId = GetGossipTextId(menuId, pSource);
 
-    PlayerTalkClass->SendGossipMenu(textId, pSource->GetObjectGuid());
+    m_playerMenu->SendGossipMenu(textId, pSource->GetObjectGuid());
 }
 
 void Player::OnGossipSelect(WorldObject* pSource, uint32 gossipListId)
 {
-    GossipMenu& gossipmenu = PlayerTalkClass->GetGossipMenu();
+    GossipMenu& gossipmenu = m_playerMenu->GetGossipMenu();
 
     if (gossipListId >= gossipmenu.MenuItemCount())
         return;
@@ -11737,7 +11768,7 @@ void Player::OnGossipSelect(WorldObject* pSource, uint32 gossipListId)
                 break;
 
             if (menuData.m_gAction_poi)
-                PlayerTalkClass->SendPointOfInterest(menuData.m_gAction_poi);
+                m_playerMenu->SendPointOfInterest(menuData.m_gAction_poi);
 
             // send new menu || close gossip || stay at current menu
             if (menuData.m_gAction_menu > 0)
@@ -11747,7 +11778,7 @@ void Player::OnGossipSelect(WorldObject* pSource, uint32 gossipListId)
             }
             else if (menuData.m_gAction_menu < 0)
             {
-                PlayerTalkClass->CloseGossip();
+                m_playerMenu->CloseGossip();
                 TalkedToCreature(pSource->GetEntry(), pSource->GetObjectGuid());
             }
 
@@ -11772,29 +11803,29 @@ void Player::OnGossipSelect(WorldObject* pSource, uint32 gossipListId)
             GetSession()->SendTrainerList(guid);
             break;
         case GOSSIP_OPTION_UNLEARNTALENTS:
-            PlayerTalkClass->CloseGossip();
+            m_playerMenu->CloseGossip();
             SendTalentWipeConfirm(guid);
             break;
         case GOSSIP_OPTION_UNLEARNPETSKILLS:
-            PlayerTalkClass->CloseGossip();
+            m_playerMenu->CloseGossip();
             SendPetSkillWipeConfirm();
             break;
         case GOSSIP_OPTION_TAXIVENDOR:
             GetSession()->SendTaxiMenu(((Creature*)pSource));
             break;
         case GOSSIP_OPTION_INNKEEPER:
-            PlayerTalkClass->CloseGossip();
+            m_playerMenu->CloseGossip();
             SetBindPoint(guid);
             break;
         case GOSSIP_OPTION_BANKER:
             GetSession()->SendShowBank(guid);
             break;
         case GOSSIP_OPTION_PETITIONER:
-            PlayerTalkClass->CloseGossip();
+            m_playerMenu->CloseGossip();
             GetSession()->SendPetitionShowList(guid);
             break;
         case GOSSIP_OPTION_TABARDDESIGNER:
-            PlayerTalkClass->CloseGossip();
+            m_playerMenu->CloseGossip();
             GetSession()->SendTabardVendorActivate(guid);
             break;
         case GOSSIP_OPTION_AUCTIONEER:
@@ -11821,8 +11852,8 @@ void Player::OnGossipSelect(WorldObject* pSource, uint32 gossipListId)
         case GOSSIP_OPTION_BOT:
         {
             // DEBUG_LOG("GOSSIP_OPTION_BOT");
-            PlayerTalkClass->CloseGossip();
-            uint32 guidlo = PlayerTalkClass->GossipOptionSender(gossipListId);
+            m_playerMenu->CloseGossip();
+            uint32 guidlo = m_playerMenu->GossipOptionSender(gossipListId);
             int32 cost = botConfig.GetIntDefault("PlayerbotAI.BotguyCost", 0);
 
             if (!GetPlayerbotMgr())
@@ -11967,7 +11998,7 @@ void Player::PrepareQuestMenu(ObjectGuid guid) const
             return;
     }
 
-    QuestMenu& qm = PlayerTalkClass->GetQuestMenu();
+    QuestMenu& qm = m_playerMenu->GetQuestMenu();
     qm.ClearMenu();
 
     for (QuestRelationsMap::const_iterator itr = irbounds.first; itr != irbounds.second; ++itr)
@@ -12009,7 +12040,9 @@ void Player::PrepareQuestMenu(ObjectGuid guid) const
 
 void Player::SendPreparedQuest(ObjectGuid guid) const
 {
-    QuestMenu& questMenu = PlayerTalkClass->GetQuestMenu();
+
+    QuestMenu& questMenu = m_playerMenu->GetQuestMenu();
+
     if (questMenu.Empty())
         return;
 
@@ -12031,7 +12064,7 @@ void Player::SendPreparedQuest(ObjectGuid guid) const
         std::string title = data->text;
         int loc_idx = GetSession()->GetSessionDbLocaleIndex();
         sObjectMgr.GetQuestgiverGreetingLocales(guid.GetEntry(), type, loc_idx, &title);
-        PlayerTalkClass->SendQuestGiverQuestList(qe, title, guid);
+        m_playerMenu->SendQuestGiverQuestList(qe, title, guid);
     }
     else
     {
@@ -12045,14 +12078,15 @@ void Player::SendPreparedQuest(ObjectGuid guid) const
             if (pQuest)
             {
                 if (status == DIALOG_STATUS_REWARD_REP && !GetQuestRewardStatus(quest_id))
-                    PlayerTalkClass->SendQuestGiverRequestItems(pQuest, guid, CanRewardQuest(pQuest, false), true);
+                    m_playerMenu->SendQuestGiverRequestItems(pQuest, guid, CanRewardQuest(pQuest, false), true);
                 else if (status == DIALOG_STATUS_INCOMPLETE)
-                    PlayerTalkClass->SendQuestGiverRequestItems(pQuest, guid, false, true);
+                    m_playerMenu->SendQuestGiverRequestItems(pQuest, guid, false, true);
                 // Send completable on repeatable quest if player don't have quest
                 else if (pQuest->IsRepeatable() && pQuest->IsAutoComplete())
-                    PlayerTalkClass->SendQuestGiverRequestItems(pQuest, guid, CanCompleteRepeatableQuest(pQuest), true);
+                    m_playerMenu->SendQuestGiverRequestItems(pQuest, guid, CanCompleteRepeatableQuest(pQuest), true);
+
                 else
-                    PlayerTalkClass->SendQuestGiverQuestDetails(pQuest, guid, true);
+                    m_playerMenu->SendQuestGiverQuestDetails(pQuest, guid, true);
             }
         }
         // multiply entries
@@ -12095,7 +12129,7 @@ void Player::SendPreparedQuest(ObjectGuid guid) const
                     }
                 }
             }
-            PlayerTalkClass->SendQuestGiverQuestList(qe, title, guid);
+            m_playerMenu->SendQuestGiverQuestList(qe, title, guid);
         }
     }
 }
@@ -17682,7 +17716,7 @@ void Player::LeaveBattleground(bool teleportToEntryPoint)
                     return;
                 }
 
-                CastSpell(this, 26013, TRIGGERED_OLD_TRIGGERED);               // Deserter
+                CastSpell(this, SPELL_ID_BATTLEGROUND_DESERTER, TRIGGERED_OLD_TRIGGERED);               // Deserter
             }
         }
     }
@@ -17691,7 +17725,7 @@ void Player::LeaveBattleground(bool teleportToEntryPoint)
 bool Player::CanJoinToBattleground() const
 {
     // check Deserter debuff
-    if (GetDummyAura(26013))
+    if (GetDummyAura(SPELL_ID_BATTLEGROUND_DESERTER))
         return false;
 
     return true;
@@ -19035,7 +19069,7 @@ void Player::UpdateTerainEnvironmentFlags(Map* m, float x, float y, float z)
         SetEnvironmentFlags(ENVIRONMENT_FLAG_UNDERWATER, (res & LIQUID_MAP_UNDER_WATER));
 
     // In water: on or under surface level
-    if (liquid_status.type_flags & MAP_LIQUID_TYPE_WATER)
+    if (liquid_status.type_flags & (MAP_LIQUID_TYPE_WATER | MAP_LIQUID_TYPE_OCEAN))
         SetEnvironmentFlags(ENVIRONMENT_FLAG_IN_WATER, (res & (LIQUID_MAP_UNDER_WATER | LIQUID_MAP_IN_WATER)));
 
     // In magma: on, under, or slightly above surface level
