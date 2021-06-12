@@ -907,7 +907,7 @@ void PathFinder::createFilter()
         }
         else
         {
-            excludeFlags |= (NAV_GROUND | NAV_WATER | NAV_SLOPE);
+            includeFlags |= (NAV_GROUND | NAV_WATER | NAV_SLOPE);
             excludeFlags |= (NAV_MAGMA | NAV_SLIME);
         }
     }
