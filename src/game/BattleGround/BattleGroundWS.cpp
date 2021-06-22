@@ -483,10 +483,12 @@ void BattleGroundWS::Reset()
     m_honorEndKills = (isBgWeekend) ? BG_WS_WEEKEND_MAP_COMPLETE_KILLS : BG_WS_NORMAL_MAP_COMPLETE_KILLS;
 
     // setup graveyard
-    sObjectMgr.SetGraveYardLinkTeam(WS_GRAVEYARD_MAIN_ALLIANCE,     BG_WS_ZONE_ID_MAIN, TEAM_INVALID);
-    sObjectMgr.SetGraveYardLinkTeam(WS_GRAVEYARD_MAIN_HORDE,        BG_WS_ZONE_ID_MAIN, TEAM_INVALID);
-    sObjectMgr.SetGraveYardLinkTeam(WS_GRAVEYARD_FLAGROOM_ALLIANCE, BG_WS_ZONE_ID_MAIN, ALLIANCE);
-    sObjectMgr.SetGraveYardLinkTeam(WS_GRAVEYARD_FLAGROOM_HORDE,    BG_WS_ZONE_ID_MAIN, HORDE);
+    // enable gy near base
+    sObjectMgr.SetGraveYardLinkTeam(WS_GRAVEYARD_MAIN_ALLIANCE, BG_WS_ZONE_ID_MAIN, ALLIANCE);
+    sObjectMgr.SetGraveYardLinkTeam(WS_GRAVEYARD_MAIN_HORDE, BG_WS_ZONE_ID_MAIN, HORDE);
+    // disable gy inside base
+    sObjectMgr.SetGraveYardLinkTeam(WS_GRAVEYARD_FLAGROOM_ALLIANCE, BG_WS_ZONE_ID_MAIN, TEAM_INVALID);
+    sObjectMgr.SetGraveYardLinkTeam(WS_GRAVEYARD_FLAGROOM_HORDE, BG_WS_ZONE_ID_MAIN, TEAM_INVALID);
 }
 
 void BattleGroundWS::EndBattleGround(Team winner)

@@ -412,8 +412,13 @@ void BattleGroundAB::Reset()
         sObjectMgr.SetGraveYardLinkTeam(abGraveyardIds[i], BG_AB_ZONE_MAIN, TEAM_INVALID);
     }
 
+    // setup graveyard
+    // enable gy near base
     sObjectMgr.SetGraveYardLinkTeam(AB_GRAVEYARD_ALLIANCE, BG_AB_ZONE_MAIN, ALLIANCE);
     sObjectMgr.SetGraveYardLinkTeam(AB_GRAVEYARD_HORDE, BG_AB_ZONE_MAIN, HORDE);
+    // disable gy inside base
+    sObjectMgr.SetGraveYardLinkTeam(AB_GRAVEYARD_ALLIANCE_BASE, BG_AB_ZONE_MAIN, TEAM_INVALID);
+    sObjectMgr.SetGraveYardLinkTeam(AB_GRAVEYARD_HORDE_BASE, BG_AB_ZONE_MAIN, TEAM_INVALID);
 }
 
 void BattleGroundAB::EndBattleGround(Team winner)
