@@ -36,14 +36,32 @@ jobs:
     runs-on: ubuntu-latest
     needs: # make sure the notification is sent AFTER the jobs you want included have completed
       - build
-    if: failure()
 
     steps:
-      - name: Notify
+      - name: Notify Success
         uses: rjstone/discord-webhook-notify@v1.0.4
+        if: success()
+        with:
+          severity: info
+          description: MacOS build succeeded
+          webhookUrl: ${{ secrets.DISCORD_WEBHOOK }}
+          avatarUrl: https://github.githubassets.com/favicons/favicon-success.png
+          
+      - name: Notify Failure
+        uses: rjstone/discord-webhook-notify@v1.0.4
+        if: failure()
         with:
           severity: error
           description: MacOS build failed
+          webhookUrl: ${{ secrets.DISCORD_WEBHOOK }}
+          avatarUrl: https://github.githubassets.com/favicons/favicon-failure.png
+          
+      - name: Notify Cancelled
+        uses: rjstone/discord-webhook-notify@v1.0.4
+        if: cancelled()
+        with:
+          severity: error
+          description: MacOS build cancelled
           webhookUrl: ${{ secrets.DISCORD_WEBHOOK }}
           avatarUrl: https://github.githubassets.com/images/modules/logos_page/Octocat.png
 
