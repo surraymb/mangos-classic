@@ -1802,14 +1802,15 @@ Loot::Loot(Player* player, Corpse* corpse, LootType type) :
     m_lootTarget = corpse;
     m_guidTarget = corpse->GetObjectGuid();
 
-    if (type != LOOT_INSIGNIA || corpse->GetType() == CORPSE_BONES)
+    if (type != LOOT_INSIGNIA && corpse->GetType() == CORPSE_BONES)
         return;
 
     if (!corpse->lootForBody)
     {
         corpse->lootForBody = true;
         uint32 pLevel;
-        if (Player* plr = sObjectAccessor.FindPlayer(corpse->GetOwnerGuid()))
+        Player* plr = sObjectAccessor.FindPlayer(corpse->GetOwnerGuid());
+        if (plr)
             pLevel = plr->getLevel();
         else
             pLevel = player->getLevel(); // TODO:: not correct, need to save real player level in the corpse data in case of logout
@@ -1818,9 +1819,89 @@ Loot::Loot(Player* player, Corpse* corpse, LootType type) :
          m_lootMethod = NOT_GROUP_TYPE_LOOT;
          m_clientLootType = CLIENT_LOOT_CORPSE;
 
-        if (player->GetBattleGround()->GetTypeId() == BATTLEGROUND_AV)
-            FillLoot(0, LootTemplates_Creature, player, false);
+        if (plr && player->InBattleGround() && player->GetBattleGroundTypeId() == BATTLEGROUND_AV)
+        {
+            uint8 race = plr->getRace();
+            uint32 rank = plr->GetHonorHighestRankInfo().rank;
+            uint32 raceItem = 0;
+            uint32 rankItem = 0;
+            uint32 questItem = 0;
+            switch (race)
+            {
+            case RACE_HUMAN:
+                //raceItem = 18144;
+                questItem = 17306;
+                break;
+            case RACE_DWARF:
+                //raceItem = 18206;
+                questItem = 17306;
+                break;
+            case RACE_NIGHTELF:
+                //raceItem = 18142;
+                questItem = 17306;
+                break;
+            case RACE_GNOME:
+                //raceItem = 18143;
+                questItem = 17306;
+                break;
+            case RACE_ORC:
+                //raceItem = 18207;
+                questItem = 17423;
+                break;
+            case RACE_UNDEAD:
+                //raceItem = 18147;
+                questItem = 17423;
+                break;
+            case RACE_TAUREN:
+                //raceItem = 18145;
+                questItem = 17423;
+                break;
+            case RACE_TROLL:
+                //raceItem = 18146;
+                questItem = 17423;
+                break;
+            }
+            if (rank < 6)
+                if (plr->GetTeam() == ALLIANCE)
+                    rankItem = 17326;
+                else
+                    rankItem = 17502;
+            else if (rank < 10)
+                if (plr->GetTeam() == ALLIANCE)
+                    rankItem = 17327;
+                else
+                    rankItem = 17503;
+            else if (plr->GetTeam() == ALLIANCE)
+                rankItem = 17328;
+            else
+                rankItem = 17504;
 
+            if (raceItem)
+            {
+                LootStoreItem storeitem = LootStoreItem(raceItem, 100, 0, 0, 1, 1);
+                AddItem(storeitem);
+            }
+            if (questItem)
+            {
+                LootStoreItem storeitem = LootStoreItem(questItem, 100, 0, 0, 1, 1);
+                AddItem(storeitem);
+            }
+            if (rankItem)
+            {
+                LootStoreItem storeitem = LootStoreItem(rankItem, 75, 0, 0, 0, 1);
+                AddItem(storeitem);
+            }
+
+            LootStoreItem storeitem = LootStoreItem(17422, 75, 0, 0, 0, 20);
+            AddItem(storeitem);
+
+            // Everyone can loot in AV.
+            for (auto lootItem : m_lootItems)
+            {
+                lootItem->allowedGuid.emplace(player->GetObjectGuid());
+            }
+        }
+        
         // It may need a better formula
         // Now it works like this: lvl10: ~6copper, lvl70: ~9silver
         m_gold = (uint32)(urand(50, 150) * 0.016f * pow(((float)pLevel) / 5.76f, 2.5f) * sWorld.getConfig(CONFIG_FLOAT_RATE_DROP_MONEY));
