@@ -55,7 +55,7 @@ jobs:
           # this build step will fail
 
       - name: Configure
-        run: cmake -B ${{env.BUILD_DIR}} -S ${{env.REPO_DIR}}
+        run: cmake -B ${{env.BUILD_DIR}} -S ${{env.REPO_DIR}} -DBUILD_IKE3_BOTS=ON
 
       - name: Build
         env:
@@ -80,32 +80,23 @@ jobs:
       - build
 
     steps:
-      - name: Notify Success
+      - if: success()
+        name: Notify Success
         uses: rjstone/discord-webhook-notify@v1.0.4
-        if: success()
         with:
           severity: info
           description: Windows build succeded
           webhookUrl: ${{ secrets.DISCORD_WEBHOOK }}
           avatarUrl: https://github.githubassets.com/favicons/favicon-success.png
           
-      - name: Notify Failure
+      - if: failure()
+        name: Notify Failure
         uses: rjstone/discord-webhook-notify@v1.0.4
-        if: failure()
         with:
           severity: error
           description: Windows build failed
           webhookUrl: ${{ secrets.DISCORD_WEBHOOK }}
           avatarUrl: https://github.githubassets.com/favicons/favicon-failure.png
-          
-      - name: Notify Cancelled
-        uses: rjstone/discord-webhook-notify@v1.0.4
-        if: cancelled()
-        with:
-          severity: warn
-          description: Windows build cancelled
-          webhookUrl: ${{ secrets.DISCORD_WEBHOOK }}
-          avatarUrl: https://github.githubassets.com/images/modules/logos_page/Octocat.png
 
 
 
