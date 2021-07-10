@@ -826,7 +826,7 @@ bool Map::HasRealPlayers()
         if (!player || !player->IsInWorld())
             continue;
 
-        if (!player->GetPlayerbotAI() || player->GetPlayerbotAI()->isRealPlayer())
+        if (!player->GetPlayerbotAI() || player->GetPlayerbotAI()->IsRealPlayer())
         {
             return true;
         }
