@@ -1038,15 +1038,6 @@ void Aura::TriggerSpell()
                     // Stalagg Chain and Feugen Chain
                     // case 28096:
                     // case 28111:
-                    case 29351:                             // Plague Wave Controller (Slow)
-                    case 30114:                             // Plague Wave Controller (Fast)
-                    {
-                        uint32 spellForTick[6] = { 30116, 30117, 30118, 30119, 30118, 30117 };  // Circling back and forth through the 4 plague areas
-                        uint32 tick = (GetAuraTicks() - 1) % 6;
-
-                        triggerTarget->CastSpell(triggerTarget, spellForTick[tick], TRIGGERED_OLD_TRIGGERED, nullptr, this, casterGUID);
-                        return;
-                    }
 //                    // Guardian of Icecrown Passive
 //                    case 29897: break;
 //                    // Mind Exhaustion Passive
@@ -1202,31 +1193,6 @@ void Aura::TriggerSpell()
             {
                 triggerCaster->CastCustomSpell(nullptr, trigger_spell_id, &m_modifier.m_amount, nullptr, nullptr, TRIGGERED_OLD_TRIGGERED, nullptr, this);
                 return;
-            }
-            case 28059:                                     // Positive Charge
-            case 28084:                                     // Negative Charge
-            {
-                uint32 buffAuraId;
-                float range = 13.f;
-
-                if (auraId == 28059)
-                    buffAuraId = 29659;
-                else
-                    buffAuraId = 29660;
-
-                uint32 curCount = 0;
-                PlayerList playerList;
-                GetPlayerListWithEntryInWorld(playerList, target, range); // official range
-                for (Player* player : playerList)
-                    if (target != player && player->HasAura(auraId))
-                        curCount++;
-
-                target->RemoveAurasDueToSpell(buffAuraId);
-                if (curCount)
-                    for (uint32 i = 0; i < curCount; i++)
-                        target->CastSpell(target, buffAuraId, TRIGGERED_OLD_TRIGGERED);
-
-                break;
             }
         }
     }
@@ -1495,24 +1461,6 @@ void Aura::HandleAuraDummy(bool apply, bool Real)
             case 26077:                                     // Itch
             {
                 GetCaster()->CastSpell(target, 26078, TRIGGERED_OLD_TRIGGERED);
-                return;
-            }
-            case 28059:                                     // Positive Charge
-                target->RemoveAurasDueToSpell(29659);
-                return;
-            case 28084:                                     // Negative Charge
-                target->RemoveAurasDueToSpell(29660);
-                return;
-            case 28169:                                     // Mutating Injection
-            {
-                if (m_removeMode == AURA_REMOVE_BY_EXPIRE)
-                    // Embalming Cloud
-                    target->CastSpell(target, 28322, TRIGGERED_OLD_TRIGGERED, nullptr, this);
-                else // Removed by dispell
-                    // Mutagen Explosion
-                    target->CastSpell(target, 28206, TRIGGERED_OLD_TRIGGERED, nullptr, this);
-                // Poison Cloud
-                target->CastSpell(target, 28240, TRIGGERED_OLD_TRIGGERED, nullptr, this);
                 return;
             }
             case 29104:                                     // Anub'Rekhan Aura

@@ -430,6 +430,7 @@ UPDATE creature_template SET ScriptName='npc_diseased_maggot' WHERE entry IN (16
 UPDATE creature_template SET ScriptName='npc_invible_man' WHERE entry=17286;
 UPDATE creature_template SET ScriptName='npc_icecrown_guardian' WHERE entry=16441;
 UPDATE creature_template SET ScriptName='npc_stoneskin_gargoyle' WHERE entry=16168;
+UPDATE creature_template SET ScriptName='npc_living_poison' WHERE entry=16027;
 INSERT INTO scripted_event_id VALUES
 (10495,'event_naxxramas'),
 (10536,'event_naxxramas'),
@@ -2168,7 +2169,7 @@ INSERT INTO script_texts (entry,content_default,sound,type,language,emote,broadc
 ('-1329020','My death means nothing.... light... will... prevail!','0','6','0','0','11817','ysida YSIDA_SAY_RUN_FAIL'),
 
 ('-1329021','Rivendare!  I come for you!','0','1','0','0','6236','aurius YELL_AURIUS_AGGRO'),
-('-1329022','Argh!','0','0','0','0','989','aurius SAY_AURIUS_DEATH'),
+('-1329022','Argh!','0','0','0','0','6237','aurius SAY_AURIUS_DEATH'),
 
 ('-1329023','Move back and hold the line!  We cannot fail or all will be lost!','0','1','0','0','6377','YELL_BASTION_BARRICADE'),
 ('-1329024','Move to the stairs and defend!','0','1','0','0','6378','YELL_BASTION_STAIRS'),
@@ -4173,8 +4174,8 @@ INSERT INTO script_waypoint (entry, pathId, pointid, position_x, position_y, pos
 (11016,0,110,4873.97,-394.919,349.844,0,1000,0,''),
 (11016,0,111,4863.02,-394.521,350.65,0,0,0,''),
 (11016,0,112,4848.7,-397.612,351.215,0,0,0,''),
-(11832,0,1,7848.39,-2216.36,470.888,0,15000,0,'SAY_REMULOS_INTRO_1'),
-(11832,0,2,7848.39,-2216.36,470.888,0,5000,0,'SAY_REMULOS_INTRO_2'),
+(11832,0,1,7848.39,-2216.36,470.888,3.9095,15000,0,'SAY_REMULOS_INTRO_1'),
+(11832,0,2,7848.39,-2216.36,470.888,3.9095,5000,0,'SAY_REMULOS_INTRO_2'),
 (11832,0,3,7829.79,-2244.84,463.853,0,0,0,''),
 (11832,0,4,7819.01,-2304.34,455.957,0,0,0,''),
 (11832,0,5,7931.1,-2314.35,473.054,0,0,0,''),
@@ -4186,12 +4187,12 @@ INSERT INTO script_waypoint (entry, pathId, pointid, position_x, position_y, pos
 (11832,0,11,7947.16,-2583.4,490.066,0,0,0,''),
 (11832,0,12,7951.09,-2596.22,489.831,0,0,0,''),
 (11832,0,13,7948.27,-2610.06,492.34,0,0,0,''),
-(11832,0,14,7928.52,-2625.95,492.448,0,0,0,'escort paused - SAY_REMULOS_INTRO_3'),
+(11832,0,14,7928.52,-2625.95,492.448,3.72,500,0,'escort paused - SAY_REMULOS_INTRO_3'),
 (11832,0,15,7948.27,-2610.06,492.34,0,0,0,''),
 (11832,0,16,7952.32,-2594.12,490.07,0,0,0,''),
 (11832,0,17,7913.99,-2567,488.331,0,0,0,''),
-(11832,0,18,7835.45,-2571.1,489.289,0,0,0,'escort paused - SAY_REMULOS_DEFEND_2'),
-(11832,0,19,7897.28,-2560.65,487.461,0,0,0,'escort paused'),
+(11832,0,18,7835.45,-2571.1,489.289,0,500,0,'escort paused - SAY_REMULOS_DEFEND_2'),
+(11832,0,19,7897.28,-2560.65,487.461,0,500,0,'escort paused'),
 (11856,0,1,113.91,-350.13,4.55,0,0,0,''),
 (11856,0,2,109.54,-350.08,3.74,0,0,0,''),
 (11856,0,3,106.95,-353.4,3.6,0,0,0,''),
