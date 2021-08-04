@@ -19,7 +19,7 @@ UNLOCK TABLES;
 
 -- CONVERT MAIN TABLES
 ALTER TABLE `characters`
-	ADD COLUMN `dungeon_difficulty` tinyint(1) unsigned NOT NULL DEFAULT '0' AFTER `map`,
+  ADD COLUMN `dungeon_difficulty` tinyint(1) unsigned NOT NULL DEFAULT '0' AFTER `map`,
   ADD COLUMN `arenaPoints` int(10) unsigned NOT NULL DEFAULT '0' AFTER `taxi_path`,
   DROP COLUMN `honor_standing`,
   DROP COLUMN `stored_honor_rating`,
@@ -97,7 +97,7 @@ UPDATE `characters`
 UPDATE `characters`
   SET `exploredZones` = CONCAT(`exploredZones`, REPEAT('0 ', 64));
 
--- CLEAR AURAS AND COOLDOW
+-- CLEAR AURAS AND COOLDOWN
 DELETE FROM `character_spell_cooldown`;
 DELETE FROM `pet_spell_cooldown`;
 DELETE FROM `character_aura`;
@@ -128,7 +128,7 @@ UPDATE `characters`
 
 -- ADD SCARAB LORD TITLE IF GONG! QUEST COMPLETED
 UPDATE `characters`
-  SET `knownTitles` = CONCAT(SUBSTRING_INDEX(`knownTitles`, ' 0 ', 1), CONCAT(' ', CONCAT((1 << (33 % 32)), ' '))) WHERE `guid` IN (SELECT `guid` FROM `character_queststatus` WHERE `quest` = '8743' AND `rewarded` = '1');
+  SET `knownTitles` = REPLACE(`knownTitles`, ' 0 ', ' 2 ') WHERE `guid` IN (SELECT `guid` FROM `character_queststatus` WHERE `quest` = '8743' AND `rewarded` = '1');
 
 -- SET SCARAB LORD TITLE AS SELECTED
 UPDATE `characters`
