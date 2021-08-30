@@ -678,6 +678,10 @@ void Map::Update(const uint32& t_diff)
         transport->Update(t_diff);
     }
 
+#ifdef ENABLE_PLAYERBOTS
+    bool hasPlayers = false;
+#endif
+
     // the player iterator is stored in the map object
     // to make sure calls to Map::Remove don't invalidate it
     {
@@ -694,6 +698,14 @@ void Map::Update(const uint32& t_diff)
             Player* player = m_mapRefIter->getSource();
             if (!player || !player->IsInWorld())
                 continue;
+
+#ifdef ENABLE_PLAYERBOTS
+            if (!player->GetPlayerbotAI() || player->GetPlayerbotAI()->IsRealPlayer())
+            {
+                if (!hasPlayers)
+                    hasPlayers = true;
+            }
+#endif
 
             // Update session first
             WorldSession* pSession = player->GetSession();
@@ -807,34 +819,20 @@ void Map::Update(const uint32& t_diff)
     m_weatherSystem->UpdateWeathers(t_diff);
 
 #ifdef ENABLE_PLAYERBOTS
+    if (hasPlayers != hasRealPlayers)
+        hasRealPlayers = hasPlayers;
+#endif
+
+#ifdef ENABLE_PLAYERBOTS
     if (IsContinent())
     {
-        if (!HasRealPlayers())
+        if (!HasRealPlayers() && m_VisibleDistance > 10.0f)
             m_VisibleDistance = 10.0f;
-        else
+        else if (HasRealPlayers() && m_VisibleDistance < sWorld.GetMaxVisibleDistanceOnContinents())
             m_VisibleDistance = sWorld.GetMaxVisibleDistanceOnContinents();
     }
 #endif
 }
-
-#ifdef ENABLE_PLAYERBOTS
-bool Map::HasRealPlayers()
-{
-    for (m_mapRefIter = m_mapRefManager.begin(); m_mapRefIter != m_mapRefManager.end(); ++m_mapRefIter)
-    {
-        Player* player = m_mapRefIter->getSource();
-        if (!player || !player->IsInWorld())
-            continue;
-
-        if (!player->GetPlayerbotAI() || player->GetPlayerbotAI()->IsRealPlayer())
-        {
-            return true;
-        }
-    }
-
-    return false;
-}
-#endif
 
 void Map::Remove(Player* player, bool remove)
 {

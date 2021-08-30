@@ -128,10 +128,6 @@ class Map : public GridRefManager<NGridType>
         void VisitNearbyCellsOf(WorldObject* obj, TypeContainerVisitor<MaNGOS::ObjectUpdater, GridTypeMapContainer> &gridVisitor, TypeContainerVisitor<MaNGOS::ObjectUpdater, WorldTypeMapContainer> &worldVisitor);
         virtual void Update(const uint32&);
 
-#ifdef ENABLE_PLAYERBOTS
-        bool HasRealPlayers();
-#endif
-
         void MessageBroadcast(Player const*, WorldPacket const&, bool to_self);
         void MessageBroadcast(WorldObject const*, WorldPacket const&);
         void MessageDistBroadcast(Player const*, WorldPacket const&, float dist, bool to_self, bool own_team_only = false);
@@ -214,6 +210,10 @@ class Map : public GridRefManager<NGridType>
         bool HavePlayers() const { return !m_mapRefManager.isEmpty(); }
         uint32 GetPlayersCountExceptGMs() const;
         bool ActiveObjectsNearGrid(uint32 x, uint32 y) const;
+
+#ifdef ENABLE_PLAYERBOTS
+        bool HasRealPlayers() { return hasRealPlayers; }
+#endif
 
         /// Send a Packet to all players on a map
         void SendToPlayers(WorldPacket const& data) const;
@@ -443,6 +443,10 @@ class Map : public GridRefManager<NGridType>
         TransportSet::iterator m_transportsIterator;
 
         std::unordered_map<uint32, std::set<ObjectGuid>> m_spawnedCount;
+
+#ifdef ENABLE_PLAYERBOTS
+        bool hasRealPlayers;
+#endif
 };
 
 class WorldMap : public Map
