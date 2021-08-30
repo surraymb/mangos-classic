@@ -133,6 +133,7 @@ int Master::Run()
     CharacterDatabase.AllowAsyncTransactions();
     WorldDatabase.AllowAsyncTransactions();
     LoginDatabase.AllowAsyncTransactions();
+    PlayerbotDatabase.AllowAsyncTransactions();
 
     ///- Catch termination signals
     _HookSignals();
