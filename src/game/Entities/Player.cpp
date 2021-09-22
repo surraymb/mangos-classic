@@ -16217,8 +16217,14 @@ void Player::_SaveStats()
 
     stmt = CharacterDatabase.CreateStatement(insertStats, "INSERT INTO character_stats (guid, maxhealth, maxpower1, maxpower2, maxpower3, maxpower4, maxpower5, "
             "strength, agility, stamina, intellect, spirit, armor, resHoly, resFire, resNature, resFrost, resShadow, resArcane, "
-            "blockPct, dodgePct, parryPct, critPct, rangedCritPct, attackPower, rangedAttackPower) "
-            "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+            "blockPct, dodgePct, parryPct, critPct, rangedCritPct, attackPower, rangedAttackPower, "
+            "holyCritPct, fireCritPct, natureCritPct, frostCritPct, shadowCritPct, arcaneCritPct, "
+            "attackPowerMod, rangedAttackPowerMod, holyDamage, fireDamage, natureDamage, frostDamage, shadowDamage, arcaneDamage, healBonus, "
+            "defenseRating, dodgeRating, parryRating, blockRating, "
+            "meleeHitRating, rangedHitRating, spellHitRating, meleeCritRating, rangedCritRating, spellCritRating, meleeHasteRating, rangedHasteRating, spellHasteRating, "
+            "expertise, expertiseRating, "
+            "mainHandDamageMin, mainHandDamageMax, mainHandSpeed, offHandDamageMin, offHandDamageMax, offHandSpeed, rangedDamageMin, rangedDamageMax, rangedSpeed, manaRegen, manaInterrupt, pvpRank) "
+            "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
 
     stmt.addUInt32(GetGUIDLow());
     stmt.addUInt32(GetMaxHealth());
@@ -16234,8 +16240,105 @@ void Player::_SaveStats()
     stmt.addFloat(GetFloatValue(PLAYER_PARRY_PERCENTAGE));
     stmt.addFloat(GetFloatValue(PLAYER_CRIT_PERCENTAGE));
     stmt.addFloat(GetFloatValue(PLAYER_RANGED_CRIT_PERCENTAGE));
-    stmt.addUInt32(GetUInt32Value(UNIT_FIELD_ATTACK_POWER));
-    stmt.addUInt32(GetUInt32Value(UNIT_FIELD_RANGED_ATTACK_POWER));
+    stmt.addUInt32((uint32)(GetTotalAttackPowerValue(BASE_ATTACK)));
+    stmt.addUInt32((uint32)(GetTotalAttackPowerValue(RANGED_ATTACK)));
+
+    // new stats
+    // spell crits
+    for (int i = SPELL_SCHOOL_HOLY; i < MAX_SPELL_SCHOOL; ++i)
+        stmt.addFloat(m_modSpellCritChance[i]);
+
+    // attack power mods
+    stmt.addUInt32(GetUInt32Value(UNIT_FIELD_ATTACK_POWER_MODS));
+    stmt.addUInt32(GetUInt32Value(UNIT_FIELD_RANGED_ATTACK_POWER_MODS));
+
+    // spell damage
+    for (int i = SPELL_SCHOOL_HOLY; i < MAX_SPELL_SCHOOL; ++i)
+        stmt.addInt32(SpellBaseDamageBonusDone(GetSchoolMask(i)));
+
+    // healing bonus
+    int32 AdvertisedBenefit = 0;
+
+    AuraList const& mHealingDone = GetAurasByType(SPELL_AURA_MOD_HEALING_DONE);
+    for (auto i : mHealingDone)
+        if ((i->GetModifier()->m_miscvalue & SPELL_SCHOOL_MASK_ALL) != 0)
+            AdvertisedBenefit += i->GetModifier()->m_amount;
+
+    // Healing bonus of spirit, intellect and strength
+    if (GetTypeId() == TYPEID_PLAYER)
+    {
+        // Healing bonus from stats
+        AuraList const& mHealingDoneOfStatPercent = GetAurasByType(SPELL_AURA_MOD_SPELL_HEALING_OF_STAT_PERCENT);
+        for (auto i : mHealingDoneOfStatPercent)
+        {
+            // stat used dependent from misc value (stat index)
+            Stats usedStat = Stats(i->GetSpellProto()->EffectMiscValue[i->GetEffIndex()]);
+            AdvertisedBenefit += int32(GetStat(usedStat) * i->GetModifier()->m_amount / 100.0f);
+        }
+    }
+
+    stmt.addInt32(AdvertisedBenefit);
+
+    // defense rating
+    int16 defRating = GetSkillBonus(95, true);
+    stmt.addInt16(defRating);
+
+    // dodge bonus
+    int32 dodgeRating = GetTotalAuraModifier(SPELL_AURA_MOD_DODGE_PERCENT);
+    stmt.addInt32(dodgeRating);
+
+    // parry Rating
+    int32 parryRating = GetTotalAuraModifier(SPELL_AURA_MOD_PARRY_PERCENT);
+    stmt.addInt32(parryRating);
+
+    // block rating
+    int32 blockRating = GetTotalAuraModifier(SPELL_AURA_MOD_BLOCK_PERCENT);
+    stmt.addInt32(blockRating);
+    
+    // ratings
+    stmt.addInt32(GetTotalAuraModifier(SPELL_AURA_MOD_HIT_CHANCE));
+    stmt.addInt32(GetTotalAuraModifier(SPELL_AURA_MOD_HIT_CHANCE));
+    stmt.addInt32(GetTotalAuraModifier(SPELL_AURA_MOD_SPELL_HIT_CHANCE));
+    //stmt.addInt32(GetTotalAuraModifier(SPELL_AURA_MOD_CRIT_PERCENT));
+    stmt.addInt32(m_modCritChance[BASE_ATTACK]);
+    stmt.addInt32(m_modCritChance[RANGED_ATTACK]);
+    //stmt.addInt32(GetTotalAuraModifier(SPELL_AURA_MOD_CRIT_PERCENT));
+    stmt.addInt32(GetTotalAuraModifier(SPELL_AURA_MOD_SPELL_CRIT_CHANCE_SCHOOL));
+
+    stmt.addInt32(GetTotalAuraModifier(SPELL_AURA_MOD_MELEE_HASTE));
+    stmt.addInt32(GetTotalAuraModifier(SPELL_AURA_MOD_RANGED_HASTE));
+    stmt.addInt32(0); // spell haste
+    stmt.addInt32(0); // expertise
+    stmt.addInt32(0); // expertise rating
+
+    // weapon damage
+    // main hand
+    float min, max;
+    CalculateMinMaxDamage(BASE_ATTACK, false, min, max);
+    stmt.addFloat(min);
+    stmt.addFloat(max);
+    stmt.addFloat(GetAPMultiplier(BASE_ATTACK, false));
+
+    // off hand
+    min, max = 0;
+    CalculateMinMaxDamage(OFF_ATTACK, false, min, max);
+    stmt.addFloat(min);
+    stmt.addFloat(max);
+    stmt.addFloat(GetAPMultiplier(OFF_ATTACK, false));
+
+    // ranged
+    min, max = 0;
+    CalculateMinMaxDamage(RANGED_ATTACK, false, min, max);
+    stmt.addFloat(min);
+    stmt.addFloat(max);
+    stmt.addFloat(GetAPMultiplier(OFF_ATTACK, false));
+
+    // mana regen
+    stmt.addFloat(m_modManaRegen);
+    stmt.addFloat(m_modManaRegenInterrupt);
+
+    // pvp rank
+    stmt.addInt32(GetHonorRankInfo().visualRank);
 
     stmt.Execute();
 }
