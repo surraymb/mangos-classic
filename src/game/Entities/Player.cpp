@@ -16280,8 +16280,8 @@ void Player::_SaveStats()
     stmt.addInt32(AdvertisedBenefit);
 
     // defense rating
-    int16 defRating = GetSkillBonus(95, true);
-    stmt.addInt16(defRating);
+    int16 defRating = GetSkillBonus(95);
+    stmt.addInt32(defRating);
 
     // dodge bonus
     int32 dodgeRating = GetTotalAuraModifier(SPELL_AURA_MOD_DODGE_PERCENT);
@@ -16294,15 +16294,13 @@ void Player::_SaveStats()
     // block rating
     int32 blockRating = GetTotalAuraModifier(SPELL_AURA_MOD_BLOCK_PERCENT);
     stmt.addInt32(blockRating);
-    
+
     // ratings
     stmt.addInt32(GetTotalAuraModifier(SPELL_AURA_MOD_HIT_CHANCE));
     stmt.addInt32(GetTotalAuraModifier(SPELL_AURA_MOD_HIT_CHANCE));
     stmt.addInt32(GetTotalAuraModifier(SPELL_AURA_MOD_SPELL_HIT_CHANCE));
-    //stmt.addInt32(GetTotalAuraModifier(SPELL_AURA_MOD_CRIT_PERCENT));
     stmt.addInt32(m_modCritChance[BASE_ATTACK]);
     stmt.addInt32(m_modCritChance[RANGED_ATTACK]);
-    //stmt.addInt32(GetTotalAuraModifier(SPELL_AURA_MOD_CRIT_PERCENT));
     stmt.addInt32(GetTotalAuraModifier(SPELL_AURA_MOD_SPELL_CRIT_CHANCE_SCHOOL));
 
     stmt.addInt32(GetTotalAuraModifier(SPELL_AURA_MOD_MELEE_HASTE));
@@ -16313,24 +16311,18 @@ void Player::_SaveStats()
 
     // weapon damage
     // main hand
-    float min, max;
-    CalculateMinMaxDamage(BASE_ATTACK, false, min, max);
-    stmt.addFloat(min);
-    stmt.addFloat(max);
+    stmt.addFloat(GetFloatValue(UNIT_FIELD_MINDAMAGE));
+    stmt.addFloat(GetFloatValue(UNIT_FIELD_MAXDAMAGE));
     stmt.addFloat(GetAPMultiplier(BASE_ATTACK, false));
 
     // off hand
-    min, max = 0;
-    CalculateMinMaxDamage(OFF_ATTACK, false, min, max);
-    stmt.addFloat(min);
-    stmt.addFloat(max);
+    stmt.addFloat(GetFloatValue(UNIT_FIELD_MINOFFHANDDAMAGE));
+    stmt.addFloat(GetFloatValue(UNIT_FIELD_MAXOFFHANDDAMAGE));
     stmt.addFloat(GetAPMultiplier(OFF_ATTACK, false));
 
     // ranged
-    min, max = 0;
-    CalculateMinMaxDamage(RANGED_ATTACK, false, min, max);
-    stmt.addFloat(min);
-    stmt.addFloat(max);
+    stmt.addFloat(GetFloatValue(UNIT_FIELD_MINRANGEDDAMAGE));
+    stmt.addFloat(GetFloatValue(UNIT_FIELD_MAXRANGEDDAMAGE));
     stmt.addFloat(GetAPMultiplier(OFF_ATTACK, false));
 
     // mana regen
