@@ -1520,7 +1520,12 @@ void Group::CalculateLFGRoles(LFGGroupQueueInfo& data)
     for (const auto& citr : GetMemberSlots())
     {
         Classes playerClass = (Classes)sObjectMgr.GetPlayerClassByGUID(citr.guid);
-        ClassRoles lfgRole = LFGQueue::CalculateRoles(playerClass);
+        ClassRoles lfgRole;
+        Player* member = sObjectMgr.GetPlayer(citr.guid);
+        if (member)
+            lfgRole = LFGQueue::CalculateTalentRoles(member);
+        else
+            lfgRole = LFGQueue::CalculateRoles(playerClass);
 
         for (ClassRoles role : PotentialRoles)
         {

@@ -72,6 +72,7 @@ struct LFGPlayerQueueInfo
     std::list<std::pair<ClassRoles, RolesPriority>> rolePriority;
 
     void CalculateRoles(Classes playerClass);
+    void CalculateTalentRoles(Player* player);
     RolesPriority GetRolePriority(ClassRoles role);
 };
 
@@ -120,6 +121,9 @@ class LFGQueue
         static void BuildCompletePacket(WorldPacket& data);
 
         static ClassRoles CalculateRoles(Classes playerClass);
+        static ClassRoles CalculateTalentRoles(Player* player);
+        static int GetHighestTalentTree(Player* player);
+        static std::map<uint32, int32> GetTalentTrees(Player* player);
         static RolesPriority getPriority(Classes playerClass, ClassRoles playerRoles);
 
         static uint32 GetMaximumDPSSlots() { return 3u; }

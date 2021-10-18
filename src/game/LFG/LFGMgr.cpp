@@ -58,6 +58,17 @@ void LFGPlayerQueueInfo::CalculateRoles(Classes playerClass)
     }
 }
 
+void LFGPlayerQueueInfo::CalculateTalentRoles(Player* player)
+{
+    roleMask = LFGQueue::CalculateTalentRoles(player);
+
+    // Determine role priority
+    for (ClassRoles role : PotentialRoles)
+    {
+        rolePriority.emplace_back(std::pair<ClassRoles, RolesPriority>(role, LFGQueue::getPriority(Classes(player->getClass()), role)));
+    }
+}
+
 RolesPriority LFGPlayerQueueInfo::GetRolePriority(ClassRoles role)
 {
     for (const auto& iter : rolePriority)
@@ -108,7 +119,7 @@ void LFGQueue::AddToQueue(Player* leader, uint32 queueAreaID)
 #else
         i_Player.hasQueuePriority = false;
 #endif
-        i_Player.CalculateRoles(static_cast<Classes>(leader->getClass()));
+        i_Player.CalculateTalentRoles(leader);
         i_Player.name = leader->GetName();
 
         leader->GetSession()->SendMeetingstoneSetqueue(queueAreaID, MEETINGSTONE_STATUS_JOINED_QUEUE);
@@ -201,6 +212,127 @@ RolesPriority LFGQueue::getPriority(Classes playerClass, ClassRoles playerRoles)
         }
         default:                    return LFG_PRIORITY_NONE;
     }
+}
+
+std::map<uint32, int32> LFGQueue::GetTalentTrees(Player* _player)
+{
+    std::map<uint32, int32> tabs;
+    for (uint32 i = 0; i < uint32(3); i++)
+        tabs[i] = 0;
+
+    uint32 classMask = _player->getClassMask();
+    for (uint32 i = 0; i < sTalentStore.GetNumRows(); ++i)
+    {
+        TalentEntry const *talentInfo = sTalentStore.LookupEntry(i);
+        if (!talentInfo)
+            continue;
+
+        TalentTabEntry const *talentTabInfo = sTalentTabStore.LookupEntry(talentInfo->TalentTab);
+        if (!talentTabInfo)
+            continue;
+
+        if ((classMask & talentTabInfo->ClassMask) == 0)
+            continue;
+
+        int maxRank = 0;
+        for (int rank = MAX_TALENT_RANK - 1; rank >= 0; --rank)
+        {
+            if (!talentInfo->RankID[rank])
+                continue;
+
+            uint32 spellid = talentInfo->RankID[rank];
+            if (spellid && _player->HasSpell(spellid))
+                maxRank = rank + 1;
+
+        }
+        tabs[talentTabInfo->tabpage] += maxRank;
+    }
+
+    return tabs;
+}
+
+int LFGQueue::GetHighestTalentTree(Player* _player)
+{
+    if (_player->getLevel() >= 10 && !_player->GetFreeTalentPoints())
+    {
+        std::map<uint32, int32> tabs = GetTalentTrees(_player);
+
+        int tab = -1, max = 0;
+        for (uint32 i = 0; i < uint32(3); i++)
+        {
+            if (tab == -1 || max < tabs[i])
+            {
+                tab = i;
+                max = tabs[i];
+            }
+        }
+        return tab;
+    }
+    else
+    {
+        int tab = 0;
+
+        switch (_player->getClass())
+        {
+        case CLASS_MAGE:
+            tab = 1;
+            break;
+        case CLASS_PALADIN:
+            tab = 2;
+            break;
+        case CLASS_PRIEST:
+            tab = 1;
+            break;
+        }
+        return tab;
+    }
+}
+
+ClassRoles LFGQueue::CalculateTalentRoles(Player* _player)
+{
+    ClassRoles role = LFG_ROLE_NONE;
+    int tab = GetHighestTalentTree(_player);
+    switch (_player->getClass())
+    {
+    case CLASS_PRIEST:
+        if (tab == 2)
+            role = LFG_ROLE_DPS;
+        else
+            role = LFG_ROLE_HEALER;
+        break;
+    case CLASS_SHAMAN:
+        if (tab == 2)
+            role = LFG_ROLE_HEALER;
+        else
+            role = LFG_ROLE_DPS;
+        break;
+    case CLASS_WARRIOR:
+        if (tab == 2)
+            role = LFG_ROLE_TANK;
+        else
+            role = LFG_ROLE_DPS;
+        break;
+    case CLASS_PALADIN:
+        if (tab == 0)
+            role = LFG_ROLE_HEALER;
+        else if (tab == 1)
+            role = LFG_ROLE_TANK;
+        else if (tab == 2)
+            role = LFG_ROLE_DPS;
+        break;
+    case CLASS_DRUID:
+        if (tab == 0)
+            role = LFG_ROLE_DPS;
+        else if (tab == 1)
+            role = (ClassRoles)(LFG_ROLE_TANK | LFG_ROLE_DPS);
+        else if (tab == 2)
+            role = LFG_ROLE_HEALER;
+        break;
+    default:
+        role = LFG_ROLE_DPS;
+        break;
+    }
+    return role;
 }
 
 void LFGQueue::UpdateGroup(uint32 groupId)
