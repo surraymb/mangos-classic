@@ -414,8 +414,11 @@ bool Map::Add(Player* player)
     SendInitTransports(player);
 
     NGridType* grid = getNGrid(cell.GridX(), cell.GridY());
-    player->GetViewPoint().Event_AddedToWorld(&(*grid)(cell.CellX(), cell.CellY()));
-    UpdateObjectVisibility(player, cell, p);
+    if (!player->HaveDebugFlag(CMDEBUGFLAG_DEV_USE1))
+    {
+        player->GetViewPoint().Event_AddedToWorld(&(*grid)(cell.CellX(), cell.CellY()));
+        UpdateObjectVisibility(player, cell, p);
+    }
 
     if (i_data)
         i_data->OnPlayerEnter(player);
@@ -2178,6 +2181,14 @@ void Map::SendObjectUpdates()
 
     for (auto& update_player : update_players)
     {
+#ifdef ENABLE_PLAYERBOTS
+        if (update_player.first->GetPlayerbotAI() && !update_player.first->GetPlayerbotAI()->IsRealPlayer())
+        {
+            update_player.second.Clear();
+            continue;
+        }
+#endif
+
         for (size_t i = 0; i < update_player.second.GetPacketCount(); ++i)
         {
             WorldPacket packet = update_player.second.BuildPacket(i);

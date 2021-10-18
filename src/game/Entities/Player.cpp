@@ -1541,7 +1541,12 @@ void Player::Update(const uint32 diff)
     {
         if (diff >= m_DetectInvTimer)
         {
+#ifdef ENABLE_PLAYERBOTS
+            if (!this->GetPlayerbotAI() || GetPlayerbotAI()->AllowActivity())
+                HandleStealthedUnitsDetection();
+#else
             HandleStealthedUnitsDetection();
+#endif
             m_DetectInvTimer = GetMap()->IsBattleGround() ? 500 : 2000;
         }
         else
