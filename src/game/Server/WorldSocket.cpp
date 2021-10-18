@@ -561,7 +561,10 @@ bool WorldSocket::HandlePing(WorldPacket& recvPacket)
 
     WorldPacket packet(SMSG_PONG, 4);
     packet << ping;
-    SendPacket(packet, true);
+
+    uint32 tickTime = WorldTimer::getMSTimeDiff(WorldTimer::tickPrevTime(), WorldTimer::tickTime());
+    std::thread t([this, packet, tickTime] {std::this_thread::sleep_for(std::chrono::milliseconds(tickTime)); this->SendPacket(packet, true); });
+    t.detach();
 
     return true;
 }
