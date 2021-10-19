@@ -654,7 +654,7 @@ void Map::VisitNearbyCellsOf(WorldObject* obj, TypeContainerVisitor<MaNGOS::Obje
     }
 }
 
-void Map::Update(const uint32& t_diff)
+void Map::Update(const uint32& t_diff, const uint32 s_diff)
 {
 
 #ifdef BUILD_METRICS
@@ -667,24 +667,8 @@ void Map::Update(const uint32& t_diff)
 
     uint64 count = 0;
 
-    m_dyn_tree.update(t_diff);
-
-    GetMessager().Execute(this);
-
-    /// update active cells around players and active objects
-    resetMarkedCells();
-
-    WorldObjectUnSet objToUpdate;
-    MaNGOS::ObjectUpdater obj_updater(objToUpdate, t_diff);
-    TypeContainerVisitor<MaNGOS::ObjectUpdater, GridTypeMapContainer  > grid_object_update(obj_updater);    // For creature
-    TypeContainerVisitor<MaNGOS::ObjectUpdater, WorldTypeMapContainer > world_object_update(obj_updater);   // For pets
-
-    for (m_transportsIterator = m_transports.begin(); m_transportsIterator != m_transports.end();)
-    {
-        Transport* transport = *m_transportsIterator;
-        ++m_transportsIterator;
-        transport->Update(t_diff);
-    }
+    if (t_diff)
+        m_dyn_tree.update(t_diff);
 
 #ifdef ENABLE_PLAYERBOTS
     bool hasPlayers = false;
@@ -717,7 +701,7 @@ void Map::Update(const uint32& t_diff)
 
             // Update session first
             WorldSession* pSession = player->GetSession();
-            pSession->UpdateMap(t_diff);
+            pSession->UpdateMap(s_diff);
 #ifdef BUILD_METRICS
             ++updatedSessions;
 #endif
@@ -727,18 +711,146 @@ void Map::Update(const uint32& t_diff)
 #endif
     }
 
+    if (!t_diff)
+    {
+        for (m_mapRefIter = m_mapRefManager.begin(); m_mapRefIter != m_mapRefManager.end(); ++m_mapRefIter)
+        {
+            Player* player = m_mapRefIter->getSource();
+
+            if (!player || !player->IsInWorld())
+                continue;
+
+            // update players at tick
+            player->Update(s_diff);
+        }
+        return;
+    }
+
+#ifdef ENABLE_PLAYERBOTS
+    if (hasPlayers != hasRealPlayers)
+        hasRealPlayers = hasPlayers;
+
+    if (IsContinent())
+    {
+        if (!HasRealPlayers() && m_VisibleDistance > 10.0f)
+            m_VisibleDistance = 10.0f;
+        else if (HasRealPlayers() && m_VisibleDistance < sWorld.GetMaxVisibleDistanceOnContinents())
+            m_VisibleDistance = sWorld.GetMaxVisibleDistanceOnContinents();
+    }
+#endif
+
+    GetMessager().Execute(this);
+
+    /// update active cells around players and active objects
+    resetMarkedCells();
+
+    WorldObjectUnSet objToUpdate;
+    MaNGOS::ObjectUpdater obj_updater(objToUpdate, t_diff);
+    TypeContainerVisitor<MaNGOS::ObjectUpdater, GridTypeMapContainer  > grid_object_update(obj_updater);    // For creature
+    TypeContainerVisitor<MaNGOS::ObjectUpdater, WorldTypeMapContainer > world_object_update(obj_updater);   // For pets
+
+    for (m_transportsIterator = m_transports.begin(); m_transportsIterator != m_transports.end();)
+    {
+        Transport* transport = *m_transportsIterator;
+        ++m_transportsIterator;
+        transport->Update(t_diff);
+    }
+
+    vector<uint32> ActivePlayers;
+    vector<uint32> ActiveZones;
+    if (IsContinent() && HasRealPlayers())
+    {
+        // check active areas timer
+        m_activeAreasTimer += t_diff;
+        if (m_activeAreasTimer >= 20000)
+        {
+            m_activeAreasTimer = 0;
+            m_activeAreas.clear();
+        }
+
+        if (!m_activeAreasTimer)
+        {
+            for (m_mapRefIter = m_mapRefManager.begin(); m_mapRefIter != m_mapRefManager.end(); ++m_mapRefIter)
+            {
+                Player* plr = m_mapRefIter->getSource();
+                if (plr && plr->IsInWorld())
+                {
+                    if (plr->GetPlayerbotAI() && !plr->GetPlayerbotAI()->IsRealPlayer())
+                        continue;
+
+                    if (plr->isAFK())
+                        continue;
+
+                    ActivePlayers.push_back(plr->GetGUIDLow());
+                    if (find(ActiveZones.begin(), ActiveZones.end(), plr->GetZoneId()) == ActiveZones.end())
+                        ActiveZones.push_back(plr->GetZoneId());
+
+                    uint32 activeArea = sMapMgr.GetContinentInstanceId(GetId(), plr->GetPositionX(), plr->GetPositionY());
+                    // check active area
+                    if (activeArea)
+                    {
+                        if (!HasActiveAreas(activeArea))
+                            m_activeAreas.push_back((ContinentAreas)activeArea);
+                    }
+                }
+            }
+            sLog.outBasic("Map::Update() Map %u has %u active areas, %u active zones", GetId(), m_activeAreas.size(), ActiveZones.size());
+        }
+    }
+
+    bool slowWorld = sWorld.GetAverageDiff() > 100;
+    bool verySlowWorld = sWorld.GetAverageDiff() > 300;
+
     /// update players at tick
+    bool checkPlr = !urand(0, verySlowWorld ? 9 : slowWorld ? 6 : HasRealPlayers() ? 3 : 2);
+    uint32 isActive = 0;
     for (m_mapRefIter = m_mapRefManager.begin(); m_mapRefIter != m_mapRefManager.end(); ++m_mapRefIter)
     {
         Player* plr = m_mapRefIter->getSource();
         if (plr && plr->IsInWorld())
+        {
+            bool isInActiveArea = false;
+            if (!plr->GetPlayerbotAI())
+            {
+                isInActiveArea = true;
+                isActive++;
+            }
+            else if (HasRealPlayers())
+            {
+                uint32 activeArea = sMapMgr.GetContinentInstanceId(GetId(), plr->GetPositionX(), plr->GetPositionY());
+                if (activeArea)
+                    isInActiveArea = IsContinent() ? HasActiveAreas(activeArea) : HasRealPlayers();
+
+                if (isInActiveArea)
+                {
+                    isActive++;
+                    ActivePlayers.push_back(plr->GetGUIDLow());
+                    if (verySlowWorld && find(ActiveZones.begin(), ActiveZones.end(), plr->GetZoneId()) == ActiveZones.end())
+                        isInActiveArea = false;
+                }
+            }
+
             plr->Update(t_diff);
+            if (isInActiveArea || checkPlr)
+                plr->UpdateAI(t_diff);
+        }
+    }
+
+    if (IsContinent() && HasActiveAreas() && !m_activeAreasTimer)
+    {
+        sLog.outBasic("Map::Update() Map %u, Active: %u, Not Active: %u", GetId(), isActive, m_mapRefManager.getSize() - isActive);
     }
 
     for (m_mapRefIter = m_mapRefManager.begin(); m_mapRefIter != m_mapRefManager.end(); ++m_mapRefIter)
     {
         Player* player = m_mapRefIter->getSource();
         if (!player->IsInWorld() || !player->IsPositionValid())
+            continue;
+
+        if (slowWorld && find(ActivePlayers.begin(), ActivePlayers.end(), player->GetGUIDLow()) == ActivePlayers.end())
+            continue;
+
+        if (verySlowWorld && find(ActiveZones.begin(), ActiveZones.end(), player->GetZoneId()) == ActiveZones.end())
             continue;
 
         VisitNearbyCellsOf(player, grid_object_update, world_object_update);
@@ -749,6 +861,7 @@ void Map::Update(const uint32& t_diff)
     }
 
     // non-player active objects
+    bool checkObj = !urand(0, verySlowWorld ? 15 : slowWorld ? 9 : HasRealPlayers() ? 3 : 2);
     if (!m_activeNonPlayers.empty())
     {
         for (m_activeNonPlayersIter = m_activeNonPlayers.begin(); m_activeNonPlayersIter != m_activeNonPlayers.end();)
@@ -762,6 +875,27 @@ void Map::Update(const uint32& t_diff)
 
             if (!obj->IsInWorld() || !obj->IsPositionValid())
                 continue;
+
+            // skip objects if world is laggy
+            if (slowWorld)
+            {
+                bool isInActiveArea = false;
+                if (HasRealPlayers())
+                {
+                    uint32 activeArea = sMapMgr.GetContinentInstanceId(GetId(), obj->GetPositionX(), obj->GetPositionY());
+                    if (activeArea)
+                        isInActiveArea = IsContinent() ? HasActiveAreas(activeArea) : HasRealPlayers();
+
+                    if (isInActiveArea)
+                    {
+                        if (verySlowWorld && find(ActiveZones.begin(), ActiveZones.end(), obj->GetZoneId()) == ActiveZones.end())
+                            isInActiveArea = false;
+                    }
+                }
+
+                if (!isInActiveArea && !checkObj)
+                    continue;
+            }
 
             objToUpdate.insert(obj);
 
@@ -801,7 +935,12 @@ void Map::Update(const uint32& t_diff)
 #endif
 
     // Send world objects and item update field changes
+#ifdef ENABLE_PLAYERBOTS
+    if (HasRealPlayers())
+        SendObjectUpdates();
+#else
     SendObjectUpdates();
+#endif
 
     // Don't unload grids if it's battleground, since we may have manually added GOs,creatures, those doesn't load from DB at grid re-load !
     // This isn't really bother us, since as soon as we have instanced BG-s, the whole map unloads as the BG gets ended
@@ -825,21 +964,6 @@ void Map::Update(const uint32& t_diff)
         i_data->Update(t_diff);
 
     m_weatherSystem->UpdateWeathers(t_diff);
-
-#ifdef ENABLE_PLAYERBOTS
-    if (hasPlayers != hasRealPlayers)
-        hasRealPlayers = hasPlayers;
-#endif
-
-#ifdef ENABLE_PLAYERBOTS
-    if (IsContinent())
-    {
-        if (!HasRealPlayers() && m_VisibleDistance > 10.0f)
-            m_VisibleDistance = 10.0f;
-        else if (HasRealPlayers() && m_VisibleDistance < sWorld.GetMaxVisibleDistanceOnContinents())
-            m_VisibleDistance = sWorld.GetMaxVisibleDistanceOnContinents();
-    }
-#endif
 }
 
 void Map::Remove(Player* player, bool remove)
@@ -1709,9 +1833,9 @@ bool DungeonMap::Add(Player* player)
     return true;
 }
 
-void DungeonMap::Update(const uint32& t_diff)
+void DungeonMap::Update(const uint32& t_diff, const uint32 s_diff)
 {
-    Map::Update(t_diff);
+    Map::Update(t_diff, s_diff);
 }
 
 void DungeonMap::Remove(Player* player, bool remove)
@@ -1858,9 +1982,9 @@ void BattleGroundMap::Initialize(bool)
     Map::Initialize(false);
 }
 
-void BattleGroundMap::Update(const uint32& diff)
+void BattleGroundMap::Update(const uint32& diff, const uint32 s_diff)
 {
-    Map::Update(diff);
+    Map::Update(diff, s_diff);
 
     GetBG()->Update(diff);
 }

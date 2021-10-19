@@ -42,19 +42,20 @@ class Worker
 class MapUpdateWorker : public Worker
 {
     public:
-        MapUpdateWorker(Map& map, uint32 diff, MapUpdater& updater) :
-            Worker(updater), m_map(map), m_diff(diff)
+        MapUpdateWorker(Map& map, uint32 diff, uint32 s_diff, MapUpdater& updater) :
+            Worker(updater), m_map(map), m_diff(diff), s_diff(s_diff)
         {}
 
         void execute() override
         {
-            m_map.Update(m_diff);
+            m_map.Update(m_diff, s_diff);
             GetWorker().update_finished();
         }
 
     private:
         Map& m_map;
         uint32 m_diff;
+        uint32 s_diff;
 };
 
 class GridCrawler : public Worker
