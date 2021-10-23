@@ -46,6 +46,9 @@
 #include "MotionGenerators/PathFinder.h"
 #include "Spells/Scripts/SpellScript.h"
 #include "Entities/ObjectGuid.h"
+#ifdef BUILD_ELUNA
+#include "LuaEngine/LuaEngine.h"
+#endif
 
 #ifdef ENABLE_PLAYERBOTS
 #include "PlayerbotAI.h"
@@ -3186,6 +3189,15 @@ SpellCastResult Spell::cast(bool skipCheck)
         }
 
         ((Player*)m_caster)->UpdateAchievementCriteria(ACHIEVEMENT_CRITERIA_TYPE_CAST_SPELL, m_spellInfo->Id, 0, (m_targets.getUnitTarget() ? m_targets.getUnitTarget() : m_caster));
+    }
+#endif
+
+#ifdef BUILD_ELUNA
+    // used by eluna
+    if (m_caster)
+    {
+        if (m_caster->GetTypeId() == TYPEID_PLAYER)
+            sEluna->OnSpellCast(m_caster->ToPlayer(), this, skipCheck);
     }
 #endif
 
