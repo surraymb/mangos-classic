@@ -776,12 +776,6 @@ void WorldSession::HandlePlayerLogin(LoginQueryHolder* holder)
             lockStatus = AREA_LOCKSTATUS_UNKNOWN_ERROR;
     }
 
-#ifdef ENABLE_PLAYERBOTS
-    PlayerbotLoginQueryHolder* lqh = (PlayerbotLoginQueryHolder*)holder;
-    if (lqh)
-        pCurrChar->SetDebugFlag(CMDEBUGFLAG_DEV_USE1);
-#endif
-
     if (lockStatus != AREA_LOCKSTATUS_OK || !pCurrChar->GetMap()->Add(pCurrChar))
     {
         // normal delayed teleport protection not applied (and this correct) for this case (Player object just created)
@@ -791,11 +785,6 @@ void WorldSession::HandlePlayerLogin(LoginQueryHolder* holder)
         if (!at || lockStatus != AREA_LOCKSTATUS_OK || !pCurrChar->TeleportTo(at->target_mapId, at->target_X, at->target_Y, at->target_Z, pCurrChar->GetOrientation()))
             pCurrChar->TeleportToHomebind();
     }
-
-#ifdef ENABLE_PLAYERBOTS
-    if (lqh)
-        pCurrChar->ClearDebugFlag(CMDEBUGFLAG_DEV_USE1);
-#endif
 
     sObjectAccessor.AddObject(pCurrChar);
     // DEBUG_LOG("Player %s added to Map.",pCurrChar->GetName());
