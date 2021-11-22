@@ -609,7 +609,7 @@ void WorldSession::LogoutPlayer()
 #endif
 
 #ifdef ENABLE_PLAYERBOTS
-        if (_player->GetPlayerbotMgr())
+        if (_player->GetPlayerbotMgr() && (!_player->GetPlayerbotAI() || _player->GetPlayerbotAI()->IsRealPlayer()))
             _player->GetPlayerbotMgr()->LogoutAllBots();
         sRandomPlayerbotMgr.OnPlayerLogout(_player);
 #endif
