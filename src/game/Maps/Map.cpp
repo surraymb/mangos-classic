@@ -149,7 +149,7 @@ Map::Map(uint32 id, time_t expiry, uint32 InstanceId)
       m_VisibleDistance(DEFAULT_VISIBILITY_DISTANCE), m_persistentState(nullptr),
       m_activeNonPlayersIter(m_activeNonPlayers.end()), m_onEventNotifiedIter(m_onEventNotifiedObjects.end()),
       i_gridExpiry(expiry), m_TerrainData(sTerrainMgr.LoadTerrain(id)),
-      i_data(nullptr), i_script_id(0), m_transportsIterator(m_transports.begin())
+      i_data(nullptr), i_script_id(0), m_transportsIterator(m_transports.begin()), m_activeAreasTimer(0), hasRealPlayers(false)
 {
     m_weatherSystem = new WeatherSystem(this);
 }
@@ -686,10 +686,6 @@ void Map::Update(const uint32& t_diff)
         transport->Update(t_diff);
     }
 
-#ifdef ENABLE_PLAYERBOTS
-    bool hasPlayers = false;
-#endif
-
     // the player iterator is stored in the map object
     // to make sure calls to Map::Remove don't invalidate it
     {
@@ -707,14 +703,6 @@ void Map::Update(const uint32& t_diff)
             if (!player || !player->IsInWorld())
                 continue;
 
-#ifdef ENABLE_PLAYERBOTS
-            if (!player->GetPlayerbotAI() || player->GetPlayerbotAI()->IsRealPlayer())
-            {
-                if (!hasPlayers)
-                    hasPlayers = true;
-            }
-#endif
-
             // Update session first
             WorldSession* pSession = player->GetSession();
             pSession->UpdateMap(t_diff);
@@ -727,18 +715,105 @@ void Map::Update(const uint32& t_diff)
 #endif
     }
 
+    // active areas timer
+    m_activeAreasTimer += t_diff;
+    if (m_activeAreasTimer >= 10000)
+    {
+        m_activeAreasTimer = 0;
+        m_activeAreas.clear();
+}
+
+    vector<uint32> ActiveZones;
+    if (!m_activeAreasTimer && IsContinent() && HasRealPlayers())
+    {
+        for (m_mapRefIter = m_mapRefManager.begin(); m_mapRefIter != m_mapRefManager.end(); ++m_mapRefIter)
+        {
+            Player* plr = m_mapRefIter->getSource();
+            if (plr && plr->IsInWorld())
+            {
+                if (plr->GetPlayerbotAI() && !plr->GetPlayerbotAI()->IsRealPlayer())
+                    continue;
+
+                if (plr->isAFK())
+                    continue;
+
+                if (!plr->isGMVisible())
+                    continue;
+
+                if (find(ActiveZones.begin(), ActiveZones.end(), plr->GetZoneId()) == ActiveZones.end())
+                    ActiveZones.push_back(plr->GetZoneId());
+
+                ContinentArea activeArea = sMapMgr.GetContinentInstanceId(GetId(), plr->GetPositionX(), plr->GetPositionY());
+                // check active area
+                if (activeArea != MAP_NO_AREA)
+                {
+                    if (!HasActiveAreas(activeArea))
+                        m_activeAreas.push_back(activeArea);
+                }
+            }
+        }
+    }
+
+    bool hasPlayers = false;
+    uint32 activeChars = 0;
+    uint32 avgDiff = sWorld.GetAverageDiff();
+    bool updateAI = urand(0, (HasRealPlayers() ? avgDiff : (avgDiff * 3))) < 10;
     /// update players at tick
     for (m_mapRefIter = m_mapRefManager.begin(); m_mapRefIter != m_mapRefManager.end(); ++m_mapRefIter)
     {
         Player* plr = m_mapRefIter->getSource();
         if (plr && plr->IsInWorld())
+        {
+            bool isInActiveArea = false;
+            if (!plr->GetPlayerbotAI() || plr->GetPlayerbotAI()->IsRealPlayer())
+            {
+                isInActiveArea = true;
+
+                hasPlayers = true;
+
+            }
+            else if (HasRealPlayers())
+            {
+                ContinentArea activeArea = MAP_NO_AREA;
+                if (IsContinent())
+                    activeArea = sMapMgr.GetContinentInstanceId(GetId(), plr->GetPositionX(), plr->GetPositionY());
+
+                isInActiveArea = IsContinent() ? (activeArea == MAP_NO_AREA ? false : HasActiveAreas(activeArea)) : HasRealPlayers();
+
+                if (isInActiveArea)
+                {
+                    if (avgDiff > 200 && IsContinent())
+                    {
+                        if (find(ActiveZones.begin(), ActiveZones.end(), plr->GetZoneId()) == ActiveZones.end())
+                            isInActiveArea = false;
+                    }
+                }
+            }
+            if (plr->GetPlayerbotAI() && plr->GetPlayerbotAI()->HasRealPlayerMaster())
+                isInActiveArea = true;
+            if (plr->InBattleGroundQueue() || plr->InBattleGround())
+                isInActiveArea = true;
+
+            if (isInActiveArea)
+                activeChars++;
+
             plr->Update(t_diff);
+            plr->UpdateAI(t_diff, !(isInActiveArea || updateAI || plr->IsInCombat()));
+        }
+    }
+
+    hasRealPlayers = hasPlayers;
+
+    if (IsContinent() && HasRealPlayers() && HasActiveAreas() && !m_activeAreasTimer)
+    {
+        sLog.outBasic("Map %u: Active Areas:Zones - %u:%u", GetId(), m_activeAreas.size(), ActiveZones.size());
+        sLog.outBasic("Map %u: Active Areas Chars - %u of %u", GetId(), activeChars, m_mapRefManager.getSize());
     }
 
     for (m_mapRefIter = m_mapRefManager.begin(); m_mapRefIter != m_mapRefManager.end(); ++m_mapRefIter)
     {
         Player* player = m_mapRefIter->getSource();
-        if (!player->IsInWorld() || !player->IsPositionValid())
+        if (!player || !player->IsInWorld() || !player->IsPositionValid())
             continue;
 
         VisitNearbyCellsOf(player, grid_object_update, world_object_update);
@@ -749,6 +824,7 @@ void Map::Update(const uint32& t_diff)
     }
 
     // non-player active objects
+    bool updateObj = urand(0, (HasRealPlayers() ? avgDiff : (avgDiff * 3))) < 10;
     if (!m_activeNonPlayers.empty())
     {
         for (m_activeNonPlayersIter = m_activeNonPlayers.begin(); m_activeNonPlayersIter != m_activeNonPlayers.end();)
@@ -762,6 +838,27 @@ void Map::Update(const uint32& t_diff)
 
             if (!obj->IsInWorld() || !obj->IsPositionValid())
                 continue;
+
+            // skip objects if world is laggy
+            if (avgDiff > 100)
+            {
+                bool isInActiveArea = false;
+
+                ContinentArea activeArea = MAP_NO_AREA;
+                if (IsContinent())
+                    activeArea = sMapMgr.GetContinentInstanceId(GetId(), obj->GetPositionX(), obj->GetPositionY());
+
+                isInActiveArea = IsContinent() ? (activeArea == MAP_NO_AREA ? false : HasActiveAreas(activeArea)) : HasRealPlayers();
+
+                if (isInActiveArea && IsContinent())
+                {
+                    if (avgDiff > 150 && find(ActiveZones.begin(), ActiveZones.end(), obj->GetZoneId()) == ActiveZones.end())
+                        isInActiveArea = false;
+                }
+
+                if (!isInActiveArea && !updateObj)
+                    continue;
+            }
 
             objToUpdate.insert(obj);
 
@@ -825,21 +922,6 @@ void Map::Update(const uint32& t_diff)
         i_data->Update(t_diff);
 
     m_weatherSystem->UpdateWeathers(t_diff);
-
-#ifdef ENABLE_PLAYERBOTS
-    if (hasPlayers != hasRealPlayers)
-        hasRealPlayers = hasPlayers;
-#endif
-
-#ifdef ENABLE_PLAYERBOTS
-    if (IsContinent())
-    {
-        if (!HasRealPlayers() && m_VisibleDistance > 10.0f)
-            m_VisibleDistance = 10.0f;
-        else if (HasRealPlayers() && m_VisibleDistance < sWorld.GetMaxVisibleDistanceOnContinents())
-            m_VisibleDistance = sWorld.GetMaxVisibleDistanceOnContinents();
-    }
-#endif
 }
 
 void Map::Remove(Player* player, bool remove)

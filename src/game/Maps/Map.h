@@ -59,6 +59,33 @@ class GenericTransport;
 namespace MaNGOS { struct ObjectUpdater; }
 class Transport;
 
+enum ContinentArea
+{
+    MAP_NO_AREA = 0,
+
+    MAP0_TOP_NORTH = 1,
+    MAP0_MIDDLE_NORTH = 2,
+    MAP0_IRONFORGE_AREA = 3,
+    MAP0_MIDDLE = 4,    // Burning stepps, Redridge monts, Blasted lands
+    MAP0_STORMWIND_AREA = 5,    // Stormwind, Elwynn forest, Redridge Mts
+    MAP0_SOUTH = 6,    // Southern phase of the continent
+
+    MAP1_TELDRASSIL = 11, // Teldrassil
+    MAP1_NORTH = 12,   // Stonetalon, Ashenvale, Darkshore, Felwood, Moonglade, Winterspring, Azshara, Desolace
+    MAP1_DUROTAR = 13,   // Durotar
+    MAP1_UPPER_MIDDLE = 14,   // Mulgore, Barrens, Dustwallow Marsh
+    MAP1_LOWER_MIDDLE = 15,   // Feralas, 1K needles
+    MAP1_VALLEY = 16,   // Orc and Troll starting area
+    MAP1_ORGRIMMAR = 17,   // Orgrimmar (on its own)
+    MAP1_SOUTH = 18,   // Silithus, Un'goro and Tanaris
+    MAP1_GMISLAND = 19,   // GM island
+
+    MAP0_FIRST = 1,
+    MAP0_LAST = 6,
+    MAP1_FIRST = 11,
+    MAP1_LAST = 19,
+};
+
 // GCC have alternative #pragma pack(N) syntax and old gcc version not support pack(push,N), also any gcc version not support it at some platform
 #if defined( __GNUC__ )
 #pragma pack(1)
@@ -338,6 +365,8 @@ class Map : public GridRefManager<NGridType>
 
         bool CanSpawn(TypeID typeId, uint32 dbGuid);
 
+        bool HasActiveAreas(ContinentArea areaId = MAP_NO_AREA) { if (areaId == MAP_NO_AREA) { return !m_activeAreas.empty(); } else { return !(find(m_activeAreas.begin(), m_activeAreas.end(), areaId) == m_activeAreas.end()); } }
+
     private:
         void LoadMapAndVMap(int gx, int gy);
 
@@ -443,6 +472,9 @@ class Map : public GridRefManager<NGridType>
         TransportSet::iterator m_transportsIterator;
 
         std::unordered_map<uint32, std::set<ObjectGuid>> m_spawnedCount;
+
+        std::vector<ContinentArea> m_activeAreas;
+        uint32 m_activeAreasTimer;
 
 #ifdef ENABLE_PLAYERBOTS
         bool hasRealPlayers;
