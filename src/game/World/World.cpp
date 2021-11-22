@@ -105,9 +105,6 @@ uint32 World::m_relocation_ai_notify_delay = 1000u;
 uint32 World::m_currentMSTime = 0;
 TimePoint World::m_currentTime = TimePoint();
 uint32 World::m_currentDiff = 0;
-uint32 World::m_currentDiffSum = 0;
-uint32 World::m_currentDiffSumIndex = 0;
-uint32 World::m_averageDiff = 0;
 
 /// World constructor
 World::World(): mail_timer(0), mail_timer_expires(0), m_NextWeeklyQuestReset(0), m_opcodeCounters(NUM_MSG_TYPES)
@@ -1433,28 +1430,6 @@ void World::Update(uint32 diff)
     m_currentMSTime = WorldTimer::getMSTime();
     m_currentTime = std::chrono::time_point_cast<std::chrono::milliseconds>(Clock::now());
     m_currentDiff = diff;
-    m_currentDiffSum += diff;
-    m_currentDiffSumIndex++;
-    if (m_currentDiffSum > 60000)
-    {
-        m_averageDiff = (uint32)(m_currentDiffSum / m_currentDiffSumIndex);
-        sLog.outBasic("Avg Diff: %u. Sessions online: %u.", m_averageDiff, (uint32)GetActiveSessionCount());
-        m_currentDiffSum = 0;
-        m_currentDiffSumIndex = 0;
-    }
-    if (GetActiveSessionCount())
-    {
-        //m_averageDiffCheckTimer += diff;
-        if ((m_currentDiffSumIndex % 50 == 0) && m_currentDiffSum)
-        {
-            uint32 tempDiff = (uint32)(m_currentDiffSum / m_currentDiffSumIndex);
-            if (tempDiff > 100)
-            {
-                m_averageDiff = tempDiff;
-                sLog.outBasic("Avg Diff Increased: %u. Sessions online: %u.", m_averageDiff, (uint32)GetActiveSessionCount());
-            }
-        }
-    }
 
     ///- Update the different timers
     for (auto& m_timer : m_timers)

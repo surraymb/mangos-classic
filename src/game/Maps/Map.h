@@ -59,29 +59,6 @@ class GenericTransport;
 namespace MaNGOS { struct ObjectUpdater; }
 class Transport;
 
-enum ContinentAreas
-{
-    MAP0_TOP_NORTH = 1,
-    MAP0_MIDDLE_NORTH = 2,
-    MAP0_IRONFORGE_AREA = 3,
-    MAP0_MIDDLE = 4,    // Burning stepps, Redridge monts, Blasted lands
-    MAP0_STORMWIND_AREA = 5,    // Stormwind, Elwynn forest, Redridge Mts
-    MAP0_SOUTH = 6,    // Southern phase of the continent
-
-    MAP1_NORTH = 11,   // Stonetalon, Ashenvale, Darkshore, Felwood, Moonglade, Winterspring, Azshara, Desolace
-    MAP1_DUROTAR = 12,   // Durotar
-    MAP1_UPPER_MIDDLE = 13,   // Mulgore, Barrens, Dustwallow Marsh
-    MAP1_LOWER_MIDDLE = 14,   // Feralas, 1K needles
-    MAP1_VALLEY = 15,   // Orc and Troll starting area
-    MAP1_ORGRIMMAR = 16,   // Orgrimmar (on its own)
-    MAP1_SOUTH = 17,   // Silithus, Un'goro and Tanaris
-
-    MAP0_FIRST = 1,
-    MAP0_LAST = 6,
-    MAP1_FIRST = 11,
-    MAP1_LAST = 17,
-};
-
 // GCC have alternative #pragma pack(N) syntax and old gcc version not support pack(push,N), also any gcc version not support it at some platform
 #if defined( __GNUC__ )
 #pragma pack(1)
@@ -149,7 +126,7 @@ class Map : public GridRefManager<NGridType>
         static void DeleteFromWorld(Player* pl);        // player object will deleted at call
 
         void VisitNearbyCellsOf(WorldObject* obj, TypeContainerVisitor<MaNGOS::ObjectUpdater, GridTypeMapContainer> &gridVisitor, TypeContainerVisitor<MaNGOS::ObjectUpdater, WorldTypeMapContainer> &worldVisitor);
-        virtual void Update(const uint32&, const uint32);
+        virtual void Update(const uint32&);
 
         void MessageBroadcast(Player const*, WorldPacket const&, bool to_self);
         void MessageBroadcast(WorldObject const*, WorldPacket const&);
@@ -361,8 +338,6 @@ class Map : public GridRefManager<NGridType>
 
         bool CanSpawn(TypeID typeId, uint32 dbGuid);
 
-        bool HasActiveAreas(uint32 areaId = 0) { if (!areaId) { return !m_activeAreas.empty(); } else { return find(m_activeAreas.begin(), m_activeAreas.end(), (ContinentAreas)areaId) != m_activeAreas.end(); } }
-
     private:
         void LoadMapAndVMap(int gx, int gy);
 
@@ -469,9 +444,6 @@ class Map : public GridRefManager<NGridType>
 
         std::unordered_map<uint32, std::set<ObjectGuid>> m_spawnedCount;
 
-        std::vector<ContinentAreas> m_activeAreas;
-        uint32 m_activeAreasTimer;
-
 #ifdef ENABLE_PLAYERBOTS
         bool hasRealPlayers;
 #endif
@@ -498,7 +470,7 @@ class DungeonMap : public Map
         ~DungeonMap();
         bool Add(Player*) override;
         void Remove(Player*, bool) override;
-        void Update(const uint32&, const uint32) override;
+        void Update(const uint32&) override;
         bool Reset(InstanceResetMethod method);
         void PermBindAllPlayers(Player* player);
         void UnloadAll(bool pForce) override;
@@ -527,7 +499,7 @@ class BattleGroundMap : public Map
         ~BattleGroundMap();
 
         virtual void Initialize(bool) override;
-        void Update(const uint32&, const uint32) override;
+        void Update(const uint32&) override;
         bool Add(Player*) override;
         void Remove(Player*, bool) override;
         bool CanEnter(Player* player) override;
