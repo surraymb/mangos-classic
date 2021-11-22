@@ -1042,20 +1042,26 @@ Map::PlayerRelocation(Player* player, float x, float y, float z, float orientati
         DEBUG_FILTER_LOG(LOG_FILTER_PLAYER_MOVES, "Player %s relocation grid[%u,%u]cell[%u,%u]->grid[%u,%u]cell[%u,%u]", player->GetName(), old_cell.GridX(), old_cell.GridY(), old_cell.CellX(), old_cell.CellY(), new_cell.GridX(), new_cell.GridY(), new_cell.CellX(), new_cell.CellY());
 
         NGridType* oldGrid = getNGrid(old_cell.GridX(), old_cell.GridY());
-        RemoveFromGrid(player, oldGrid, old_cell);
-        if (!old_cell.DiffGrid(new_cell))
-            AddToGrid(player, oldGrid, new_cell);
-        else
-            EnsureGridLoadedAtEnter(new_cell, player);
+        if (oldGrid)
+        {
+            RemoveFromGrid(player, oldGrid, old_cell);
+            if (!old_cell.DiffGrid(new_cell))
+                AddToGrid(player, oldGrid, new_cell);
+            else
+                EnsureGridLoadedAtEnter(new_cell, player);
+        }
 
         NGridType* newGrid = getNGrid(new_cell.GridX(), new_cell.GridY());
-        player->GetViewPoint().Event_GridChanged(&(*newGrid)(new_cell.CellX(), new_cell.CellY()));
+        if (newGrid)
+        {
+            player->GetViewPoint().Event_GridChanged(&(*newGrid)(new_cell.CellX(), new_cell.CellY()));
+        }
     }
 
     player->OnRelocated();
 
     NGridType* newGrid = getNGrid(new_cell.GridX(), new_cell.GridY());
-    if (!same_cell && newGrid->GetGridState() != GRID_STATE_ACTIVE)
+    if (newGrid && !same_cell && newGrid->GetGridState() != GRID_STATE_ACTIVE)
     {
         ResetGridExpiry(*newGrid, 0.1f);
         newGrid->SetGridState(GRID_STATE_ACTIVE);
