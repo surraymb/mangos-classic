@@ -2268,6 +2268,9 @@ void Map::SendObjectUpdates()
     while (!i_objectsToClientUpdate.empty())
     {
         Object* obj = *i_objectsToClientUpdate.begin();
+        if (!obj)
+            continue;
+
         i_objectsToClientUpdate.erase(i_objectsToClientUpdate.begin());
         obj->BuildUpdateData(update_players);
     }
