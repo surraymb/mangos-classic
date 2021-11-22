@@ -1604,6 +1604,18 @@ void Player::Update(const uint32 diff)
     if (IsHasDelayedTeleport())
         TeleportTo(m_teleport_dest, m_teleport_options);
 
+    // increase visibility of taxi flying characters for others
+    if (IsTaxiFlying() && sWorld.getConfig(CONFIG_BOOL_FAR_VISIBLE_TAXI))
+    {
+        if (!GetVisibilityData().IsVisibilityOverridden())
+            GetVisibilityData().SetVisibilityDistanceOverride(VisibilityDistanceType::Gigantic);
+    }
+    else
+    {
+        if (GetVisibilityData().IsVisibilityOverridden())
+            GetVisibilityData().SetVisibilityDistanceOverride(VisibilityDistanceType::Normal);
+    }
+
 #ifdef BUILD_PLAYERBOT
     if (m_playerbotAI)
         m_playerbotAI->UpdateAI(diff);
@@ -17197,9 +17209,19 @@ bool Player::ActivateTaxiPathTo(std::vector<uint32> const& nodes, Creature* npc 
     // prevent stealth flight
     // RemoveAurasWithInterruptFlags(AURA_INTERRUPT_FLAG_TALK);
 
-    GetSession()->SendActivateTaxiReply(ERR_TAXIOK);
+    if (sWorld.getConfig(CONFIG_BOOL_INSTANT_TAXI))
+    {
+        TaxiNodesEntry const* lastnode = sTaxiNodesStore.LookupEntry(nodes[nodes.size() - 1]);
+        m_taxiTracker.Clear(true);
+        TeleportTo(lastnode->map_id, lastnode->x, lastnode->y, lastnode->z, GetOrientation());
+        return false;
+    }
+    else
+    {
+        GetSession()->SendActivateTaxiReply(ERR_TAXIOK);
 
-    GetMotionMaster()->MoveTaxi();
+        GetMotionMaster()->MoveTaxi();
+    }
 
     return true;
 }
