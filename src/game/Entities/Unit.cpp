@@ -1284,7 +1284,10 @@ void Unit::JustKilledCreature(Unit* killer, Creature* victim, Player* responsibl
             if (map->IsRaid() && creditedPlayer)
             {
                 if (victim->GetCreatureInfo()->ExtraFlags & CREATURE_EXTRA_FLAG_INSTANCE_BIND)
+                {
                     static_cast<DungeonMap*>(map)->PermBindAllPlayers(creditedPlayer);
+                    creditedPlayer->CreateWowarmoryFeed(3, victim->GetCreatureInfo()->Entry, 0, 0);
+                }
             }
             static_cast<DungeonMap*>(map)->GetPersistanceState()->UpdateEncounterState(ENCOUNTER_CREDIT_KILL_CREATURE, victim->GetEntry());
         }
