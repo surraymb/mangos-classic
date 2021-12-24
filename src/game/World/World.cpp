@@ -108,6 +108,7 @@ uint32 World::m_currentDiff = 0;
 uint32 World::m_currentDiffSum = 0;
 uint32 World::m_currentDiffSumIndex = 0;
 uint32 World::m_averageDiff = 0;
+uint32 World::m_maxDiff = 0;
 
 /// World constructor
 World::World(): mail_timer(0), mail_timer_expires(0), m_NextWeeklyQuestReset(0), m_opcodeCounters(NUM_MSG_TYPES)
@@ -1437,24 +1438,37 @@ void World::Update(uint32 diff)
     m_currentDiff = diff;
     m_currentDiffSum += diff;
     m_currentDiffSumIndex++;
-    if (m_currentDiffSum > 60000)
+    if (m_currentDiffSumIndex && m_currentDiffSumIndex % 600 == 0)
     {
         m_averageDiff = (uint32)(m_currentDiffSum / m_currentDiffSumIndex);
+        if (m_maxDiff < m_averageDiff)
+            m_maxDiff = m_averageDiff;
         sLog.outBasic("Avg Diff: %u. Sessions online: %u.", m_averageDiff, (uint32)GetActiveSessionCount());
+        sLog.outBasic("Max Diff (last 5 min): %u.", m_maxDiff);
+    }
+    if (m_currentDiffSum > 300000)
+    {
         m_currentDiffSum = 0;
         m_currentDiffSumIndex = 0;
+        if (m_maxDiff > m_averageDiff)
+        {
+            m_maxDiff = m_averageDiff;
+            sLog.outBasic("Max Diff reset to: %u.", m_maxDiff);
+        }
     }
     if (GetActiveSessionCount())
     {
-        if ((m_currentDiffSumIndex % 5 == 0) && m_currentDiffSum)
+        if (m_currentDiffSumIndex && (m_currentDiffSumIndex % 5 == 0))
         {
             uint32 tempDiff = (uint32)(m_currentDiffSum / m_currentDiffSumIndex);
             if (tempDiff > m_averageDiff)
             {
-                if (tempDiff > 100)
-                    m_averageDiff = tempDiff;
-                if (tempDiff > 150)
-                    sLog.outBasic("Avg Diff Increased: %u. Sessions online: %u.", m_averageDiff, (uint32)GetActiveSessionCount());
+                m_averageDiff = tempDiff;
+            }
+            if (m_maxDiff < tempDiff)
+            {
+                m_maxDiff = tempDiff;
+                sLog.outBasic("Max Diff Increased: %u.", m_maxDiff);
             }
         }
     }

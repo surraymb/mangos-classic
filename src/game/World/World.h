@@ -602,6 +602,7 @@ class World
         static TimePoint GetCurrentClockTime() { return m_currentTime; }
         static uint32 GetCurrentDiff() { return m_currentDiff; }
         static uint32 GetAverageDiff() { return m_averageDiff; }
+        static uint32 GetMaxDiff() { return m_maxDiff; }
 
         template<typename T>
         void ExecuteForAllSessions(T executor)
@@ -715,6 +716,7 @@ class World
         static uint32 m_currentDiffSum;
         static uint32 m_currentDiffSumIndex;
         static uint32 m_averageDiff;
+        static uint32 m_maxDiff;
 
         Messager<World> m_messager;
 
