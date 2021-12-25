@@ -9945,11 +9945,14 @@ Item* Player::StoreItem(ItemPosCountVec const& dest, Item* pItem, bool update)
     }
 
     /* World of Warcraft Armory */
-    ItemPrototype const* pProto = pItem->GetProto();
-    if (pProto->Quality > 2 && pProto->Flags != 2048 && (pProto->Class == ITEM_CLASS_WEAPON || pProto->Class == ITEM_CLASS_ARMOR))
+    if (lastItem)
     {
-        if (pItem->GetOwner())
-            pItem->GetOwner()->CreateWowarmoryFeed(2, pProto->ItemId, pItem->GetGUIDLow(), pProto->Quality);
+        ItemPrototype const* pProto = lastItem->GetProto();
+        if (pProto && pProto->Quality > 2 && pProto->Flags != 2048 && (pProto->Class == ITEM_CLASS_WEAPON || pProto->Class == ITEM_CLASS_ARMOR))
+        {
+            if (lastItem->GetOwner())
+                lastItem->GetOwner()->CreateWowarmoryFeed(2, pProto->ItemId, lastItem->GetGUIDLow(), pProto->Quality);
+        }
     }
     /* World of Warcraft Armory */
 
@@ -10063,7 +10066,7 @@ Item* Player::EquipNewItem(uint16 pos, uint32 item, bool update)
 
         /* World of Warcraft Armory */
         ItemPrototype const* pProto = pItem->GetProto();
-        if (pProto->Quality > 2 && pProto->Flags != 2048 && (pProto->Class == ITEM_CLASS_WEAPON || pProto->Class == ITEM_CLASS_ARMOR))
+        if (pProto && pProto->Quality > 2 && pProto->Flags != 2048 && (pProto->Class == ITEM_CLASS_WEAPON || pProto->Class == ITEM_CLASS_ARMOR))
         {
             if (pItem->GetOwner())
                 pItem->GetOwner()->CreateWowarmoryFeed(2, item, pItem->GetGUIDLow(), pProto->Quality);
