@@ -208,7 +208,12 @@ class WorldSession
         // Players connected without socket are bot
         const std::string GetRemoteAddress() const { return m_Socket ? m_Socket->GetRemoteAddress() : "disconnected/bot"; }
 #else
+#ifdef ENABLE_PLAYERBOTS
+        // Players connected without socket are bot
+        const std::string GetRemoteAddress() const { return m_Socket ? m_Socket->GetRemoteAddress() : "disconnected/bot"; }
+#else
         const std::string GetRemoteAddress() const { return m_Socket ? m_Socket->GetRemoteAddress() : "disconnected"; }
+#endif
 #endif
         const std::string& GetLocalAddress() const { return m_localAddress; }
 
@@ -220,6 +225,10 @@ class WorldSession
         SessionAnticheatInterface* GetAnticheat() const { return m_anticheat.get(); }
 
 #ifdef BUILD_PLAYERBOT
+        void SetNoAnticheat();
+#endif
+
+#ifdef ENABLE_PLAYERBOTS
         void SetNoAnticheat();
 #endif
 
@@ -369,6 +378,7 @@ class WorldSession
         // Misc
         void SendKnockBack(Unit* who, float angle, float horizontalSpeed, float verticalSpeed);
         void SendPlaySpellVisual(ObjectGuid guid, uint32 spellArtKit) const;
+        void SendTeleportToObservers(float x, float y, float z, float orientation);
 
         void SendAuthOk() const;
         void SendAuthQueued() const;
@@ -751,6 +761,11 @@ class WorldSession
 
         std::deque<uint32> GetOutOpcodeHistory();
         std::deque<uint32> GetIncOpcodeHistory();
+
+#ifdef ENABLE_PLAYERBOTS
+        // Playerbots
+        void HandleBotPackets();
+#endif
 
         Messager<WorldSession>& GetMessager() { return m_messager; }
 
