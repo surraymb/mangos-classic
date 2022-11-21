@@ -43,6 +43,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v2
         with:
+          ref: ike3-bots
           path: ${{env.REPO_DIR}}
           submodules: recursive
 
