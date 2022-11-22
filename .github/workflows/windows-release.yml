@@ -135,7 +135,7 @@ jobs:
           repo_token: "${{ secrets.GITHUB_TOKEN }}"
           automatic_release_tag: "latest"
           prerelease: false
-          title: "Windows Release Ike3 Bots (${{ steps.date.outputs.date }})"
+          title: "Windows Release(${{ steps.date.outputs.date }})"
           files: all_snapshots
 
   notify-success:
