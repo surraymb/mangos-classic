@@ -117,8 +117,8 @@ jobs:
           description: |
             **Windows build failed!**
           details: |
-            - **Core Branch:** ${{env.GIT_BRANCH}}
-            - **Bots branch:** master
+            - **Core Branch:** ${{env.GIT_BRANCH}} - ([Commits](${{github.server_url}}/${{ github.repository }}/commits/${{env.CORE_BRANCH}}))
+            - **Bots branch:** master - ([Commits](${{github.server_url}}/mangosbot-bots/commits/master))
             - **Build log:** [actions/runs/${{github.run_id}}](${{github.server_url}}/${{github.repository}}/actions/runs/${{github.run_id}})
           footer: Build fail
           webhookUrl: ${{ secrets.DISCORD_WEBHOOK_BUILD }}
