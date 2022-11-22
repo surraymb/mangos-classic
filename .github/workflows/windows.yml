@@ -1,4 +1,5 @@
-name: Windows Release
+
+name: Windows Build
 
 # use manual run
 on: [workflow_dispatch]
@@ -11,8 +12,7 @@ on: [workflow_dispatch]
 
 env:
   # Customize the CMake build type here (Release, Debug, RelWithDebInfo, etc.)
-  CORE_TYPE: "cmangos"
-  BUILD_TYPE: RelWithDebInfo
+  BUILD_TYPE: Release
   REPO_DIR : ${{github.workspace}}
   BUILD_DIR: ${{github.workspace}}/bin/builddir
   BOOST_TOOLSET: "msvc"
@@ -25,30 +25,11 @@ jobs:
     permissions:
       contents: read
 
-    strategy:
-      matrix:
-       include:
-          #- OPTIONAL_DEFINES: ""
-          #  TYPE: "default"
-
-          - OPTIONAL_DEFINES: "-DBUILD_EXTRACTORS=ON -DBUILD_IKE3_BOTS=ON -DBUILD_AHBOT=ON -DBUILD_GIT_ID=ON"
-            TYPE: "with-bots"
-
-          #- OPTIONAL_DEFINES: "-DBUILD_PLAYERBOT=ON -DBUILD_AHBOT=ON"
-          #  TYPE: "with-playerbot-ahbot"
-
-          #- OPTIONAL_DEFINES: "-DBUILD_PLAYERBOT=ON"
-          #  TYPE: "with-playerbot"
-
-          #- OPTIONAL_DEFINES: "-DBUILD_AHBOT=ON"
-          #  TYPE: "with-ahbot"
-
     steps:
-      - name: Checkout CMaNGOS Classic
+      - name: Checkout
         uses: actions/checkout@v2
         with:
           ref: ike3-bots
-          fetch-depth: 2
           path: ${{env.REPO_DIR}}
           
       - name: Checkout Bots
@@ -56,14 +37,14 @@ jobs:
         with:
           ref: master
           repository: celguar/mangosbot-bots
-          fetch-depth: 2
           path: "${{env.REPO_DIR}}/src/Modules/Bots"
 
-      - uses: FranzDiebold/github-env-vars-action@v2
       - name: Create Build Environment
         run: |
-          echo "ARCHIVE_FILENAME=classic-with-bots.zip" >> $env:GITHUB_ENV
+          echo "GITHUB_SHORT_REV=$(git rev-parse --short HEAD)" >> $env:GITHUB_ENV
+          echo "ARCHIVE_FILENAME=${{ github.event.repository.name }}-$(git rev-parse --short HEAD).zip" >> $env:GITHUB_ENV
           cmake -E make_directory ${{ env.BUILD_DIR }}
+
       # install dependencies
       - name: Cache Windows boost
         uses: actions/cache@v2
@@ -92,7 +73,7 @@ jobs:
       - name: Configure
         env:
           BOOST_ROOT: "${{env.BOOST_INSTALL_DIR}}/boost/boost"
-        run: cmake ${{matrix.OPTIONAL_DEFINES}} -B ${{env.BUILD_DIR}} -S ${{env.REPO_DIR}}
+        run: cmake -DBUILD_LOGIN_SERVER=OFF -DBUILD_IKE3_BOTS=ON -DBUILD_AHBOT=ON -DBUILD_GIT_ID=ON -B ${{env.BUILD_DIR}} -S ${{env.REPO_DIR}}
 
       - name: Build
         env:
@@ -102,81 +83,13 @@ jobs:
       - name: Archive files
         run: |
           cd bin
-          7z a -tzip ${{env.ARCHIVE_FILENAME}} "x64_${{env.BUILD_TYPE}}/*"
+          7z a -tzip ${{env.ARCHIVE_FILENAME}} x64_Release
+
       - name: Archive this artefact
         uses: actions/upload-artifact@v2
         with:
-          name: snapshot-${{matrix.TYPE}}
+          name: snapshot
           path: "bin/${{env.ARCHIVE_FILENAME}}"
-
-  upload:
-    runs-on: windows-2022
-    permissions:
-      contents: write  # for marvinpinto/action-automatic-releases to generate pre-release
-    needs: build
-
-    steps:
-      #- name: Download artifact snapshot-default
-      #  uses: actions/download-artifact@v1
-      #  with:
-      #    name: snapshot-default
-      #    path: all_snapshots
-      - name: Download artifact snapshot-with-bots
-        uses: actions/download-artifact@v1
-        with:
-          name: snapshot-with-bots
-          path: all_snapshots
-
-      - name: Get current date
-        id: date
-        run: echo "::set-output name=date::$(date +'%Y-%m-%d')"
-
-      - name: Upload snapshot
-        uses: "marvinpinto/action-automatic-releases@latest"
-        with:
-          repo_token: "${{ secrets.GITHUB_TOKEN }}"
-          automatic_release_tag: "latest"
-          prerelease: false
-          title: "Windows Release Ike3 Bots (${{ steps.date.outputs.date }})"
-          files: all_snapshots
-
-  notify-success:
-    name: Discord release successfully notification
-    runs-on: ubuntu-20.04
-    permissions:
-      contents: none
-    needs:
-      - upload
-
-    steps:
-      - name: Set environmental variables
-        run: |
-          echo "GIT_BRANCH=${GITHUB_REF#refs/heads/}" >> $GITHUB_ENV
-          shortSHA=`echo ${GITHUB_SHA} | cut -c1-8`
-          echo "GIT_SHORT_SHA=${shortSHA}" >> $GITHUB_ENV
-          projectNames="CMaNGOS Classic with ike3 bots"
-          coreType="cmangos"
-          expension="classic"
-          coreBranch="ike3-bots"
-          echo "CORE_TYPE=${coreType}" >> $GITHUB_ENV
-          echo "EXPENSION_NAME=${expension}" >> $GITHUB_ENV
-          echo "CORE_BRANCH=${coreBranch}" >> $GITHUB_ENV
-          echo "ALL_ARCH_NAME=${expension}-with-bots.zip" >> $GITHUB_ENV
-      - name: Notify
-        uses: rjstone/discord-webhook-notify@v1.0.4
-        with:
-          severity: info
-          username: ${{env.CORE_TYPE}}-${{env.EXPENSION_NAME}}
-          description: |
-            **Windows release success!**
-          details: |
-            **Core branch:** ${{env.CORE_BRANCH}} - [Commits History](${{github.server_url}}/${{ github.repository }}/commits/${{env.CORE_BRANCH}})
-            **Bots branch:** ${{env.GIT_BRANCH}} - [Commits History](${{github.server_url}}/mangosbot-bots/commits/master)
-            [**Build Log**](${{github.server_url}}/${{github.repository}}/actions/runs/${{github.run_id}})
-            [**Windows prebuilt Binaries**](${{github.server_url}}/${{ github.repository }}/releases/download/latest/${{env.ALL_ARCH_NAME}})
-          footer: Build Success
-          webhookUrl: ${{ secrets.DISCORD_WEBHOOK_BUILD }}
-          avatarUrl: https://github.githubassets.com/favicons/favicon-success.png
 
   notify:
     name: Discord Notification
@@ -194,21 +107,19 @@ jobs:
           echo "GIT_SHORT_SHA=`echo ${GITHUB_SHA} | cut -c1-8`" >> $GITHUB_ENV
           coreType="cmangos"
           expension="classic"
-          coreBranch="ike3-bots"
           echo "CORE_TYPE=${coreType}" >> $GITHUB_ENV
           echo "EXPENSION_NAME=${expension}" >> $GITHUB_ENV
-          echo "CORE_BRANCH=${coreBranch}" >> $GITHUB_ENV
       - name: Notify
         uses: rjstone/discord-webhook-notify@v1.0.4
         with:
           severity: error
           username: ${{env.CORE_TYPE}}-${{env.EXPENSION_NAME}}
           description: |
-            **Windows release fail!**
+            **Windows build failed!**
           details: |
-            **Core branch:** ${{env.CORE_BRANCH}} - [Commits History](${{github.server_url}}/${{ github.repository }}/commits/${{env.CORE_BRANCH}})
-            **Bots branch:** ${{env.GIT_BRANCH}} - [Commits History](${{github.server_url}}/mangosbot-bots/commits/master)
-            [**Build Log**](${{github.server_url}}/${{github.repository}}/actions/runs/${{github.run_id}})
-          footer: Build Fail
+            - **Core Branch:** ${{env.GIT_BRANCH}}
+            - **Bots branch:** master
+            - **Build log:** [actions/runs/${{github.run_id}}](${{github.server_url}}/${{github.repository}}/actions/runs/${{github.run_id}})
+          footer: Build fail
           webhookUrl: ${{ secrets.DISCORD_WEBHOOK_BUILD }}
           avatarUrl: https://github.githubassets.com/favicons/favicon-failure.png
