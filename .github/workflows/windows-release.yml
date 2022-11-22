@@ -48,7 +48,6 @@ jobs:
         uses: actions/checkout@v2
         with:
           ref: ike3-bots
-          fetch-depth: 2
           path: ${{env.REPO_DIR}}
           
       - name: Checkout Bots
@@ -56,7 +55,6 @@ jobs:
         with:
           ref: master
           repository: celguar/mangosbot-bots
-          fetch-depth: 2
           path: "${{env.REPO_DIR}}/src/Modules/Bots"
 
       - uses: FranzDiebold/github-env-vars-action@v2
@@ -170,11 +168,11 @@ jobs:
           description: |
             **Windows release success!**
           details: |
-            **Core branch:** ${{env.CORE_BRANCH}} - [Commits History](${{github.server_url}}/${{ github.repository }}/commits/${{env.CORE_BRANCH}})
-            **Bots branch:** ${{env.GIT_BRANCH}} - [Commits History](${{github.server_url}}/mangosbot-bots/commits/master)
-            [**Build Log**](${{github.server_url}}/${{github.repository}}/actions/runs/${{github.run_id}})
-            [**Windows prebuilt Binaries**](${{github.server_url}}/${{ github.repository }}/releases/download/latest/${{env.ALL_ARCH_NAME}})
-          footer: Build Success
+            - **Core branch:** ${{env.CORE_BRANCH}} - ([Commits](${{github.server_url}}/${{ github.repository }}/commits/${{env.CORE_BRANCH}}))
+            - **Bots branch:** master - ([Commits](${{github.server_url}}/mangosbot-bots/commits/master))
+            - **Build log:** [actions/runs/${{github.run_id}}](${{github.server_url}}/${{github.repository}}/actions/runs/${{github.run_id}})
+            - [**Download Windows Binaries**](${{github.server_url}}/${{ github.repository }}/releases/download/latest/${{env.ALL_ARCH_NAME}})
+          footer: Build success
           webhookUrl: ${{ secrets.DISCORD_WEBHOOK_BUILD }}
           avatarUrl: https://github.githubassets.com/favicons/favicon-success.png
 
@@ -204,11 +202,11 @@ jobs:
           severity: error
           username: ${{env.CORE_TYPE}}-${{env.EXPENSION_NAME}}
           description: |
-            **Windows release fail!**
+            **Windows release failed!**
           details: |
-            **Core branch:** ${{env.CORE_BRANCH}} - [Commits History](${{github.server_url}}/${{ github.repository }}/commits/${{env.CORE_BRANCH}})
-            **Bots branch:** ${{env.GIT_BRANCH}} - [Commits History](${{github.server_url}}/mangosbot-bots/commits/master)
-            [**Build Log**](${{github.server_url}}/${{github.repository}}/actions/runs/${{github.run_id}})
-          footer: Build Fail
+            - **Core branch:** ${{env.CORE_BRANCH}} - ([Commits](${{github.server_url}}/${{ github.repository }}/commits/${{env.CORE_BRANCH}}))
+            - **Bots branch:** master - ([Commits](${{github.server_url}}/mangosbot-bots/commits/master))
+            - **Build log:** [actions/runs/${{github.run_id}}](${{github.server_url}}/${{github.repository}}/actions/runs/${{github.run_id}})
+          footer: Release fail
           webhookUrl: ${{ secrets.DISCORD_WEBHOOK_BUILD }}
           avatarUrl: https://github.githubassets.com/favicons/favicon-failure.png
