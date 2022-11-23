@@ -120,11 +120,8 @@ jobs:
           echo "GIT_SHORT_SHA=`echo ${GITHUB_SHA} | cut -c1-8`" >> $GITHUB_ENV
           coreType="cmangos"
           expension="classic"
-          coreBranch="ike3-bots"
           echo "CORE_TYPE=${coreType}" >> $GITHUB_ENV
           echo "EXPENSION_NAME=${expension}" >> $GITHUB_ENV
-          echo "CORE_BRANCH=${coreBranch}" >> $GITHUB_ENV
-
       - name: Notify
         uses: rjstone/discord-webhook-notify@v1.0.4
         with:
@@ -133,9 +130,9 @@ jobs:
           description: |
             **Linux build failed!**
           details: |
-            - **Core branch:** ${{env.CORE_BRANCH}} - ([Commits](${{github.server_url}}/${{ github.repository }}/commits/${{env.CORE_BRANCH}}))
+            - **Core branch:** ${{env.GIT_BRANCH}} - ([Commits](${{github.server_url}}/${{ github.repository }}/commits/${{env.GIT_BRANCH}}))
             - **Bots branch:** master - ([Commits](${{github.server_url}}/mangosbot-bots/commits/master))
-            - **Build log:** [actions/runs/${{github.run_id}}](${{github.server_url}}/${{github.repository}}/actions/runs/${{github.run_id}}
+            - **Build log:** [actions/runs/${{github.run_id}}](${{github.server_url}}/${{github.repository}}/actions/runs/${{github.run_id}})
           footer: Build fail
           webhookUrl: ${{ secrets.DISCORD_WEBHOOK_BUILD }}
           avatarUrl: https://github.githubassets.com/favicons/favicon-failure.png
