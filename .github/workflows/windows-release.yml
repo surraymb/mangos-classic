@@ -47,7 +47,6 @@ jobs:
       - name: Checkout CMaNGOS Classic
         uses: actions/checkout@v2
         with:
-          ref: ike3-bots
           path: ${{env.REPO_DIR}}
           
       - name: Checkout Bots
@@ -55,7 +54,7 @@ jobs:
         with:
           ref: master
           repository: celguar/mangosbot-bots
-          path: "${{env.REPO_DIR}}/src/Modules/Bots"
+          path: "${{env.REPO_DIR}}/src/modules/Bots"
 
       - uses: FranzDiebold/github-env-vars-action@v2
       - name: Create Build Environment
@@ -109,8 +108,7 @@ jobs:
 
   upload:
     runs-on: windows-2022
-    permissions:
-      contents: write  # for marvinpinto/action-automatic-releases to generate pre-release
+    permissions: write-all
     needs: build
 
     steps:
@@ -135,7 +133,7 @@ jobs:
           repo_token: "${{ secrets.GITHUB_TOKEN }}"
           automatic_release_tag: "latest"
           prerelease: false
-          title: "Windows Release(${{ steps.date.outputs.date }})"
+          title: "Windows Release (${{ steps.date.outputs.date }})"
           files: all_snapshots
 
   notify-success:
@@ -155,10 +153,8 @@ jobs:
           projectNames="CMaNGOS Classic with ike3 bots"
           coreType="cmangos"
           expension="classic"
-          coreBranch="ike3-bots"
           echo "CORE_TYPE=${coreType}" >> $GITHUB_ENV
           echo "EXPENSION_NAME=${expension}" >> $GITHUB_ENV
-          echo "CORE_BRANCH=${coreBranch}" >> $GITHUB_ENV
           echo "ALL_ARCH_NAME=${expension}-with-bots.zip" >> $GITHUB_ENV
       - name: Notify
         uses: rjstone/discord-webhook-notify@v1.0.4
@@ -168,7 +164,7 @@ jobs:
           description: |
             **Windows release success!**
           details: |
-            - **Core branch:** ${{env.CORE_BRANCH}} - ([Commits](${{github.server_url}}/${{ github.repository }}/commits/${{env.CORE_BRANCH}}))
+            - **Core branch:** ${{env.GIT_BRANCH}} - ([Commits](${{github.server_url}}/${{ github.repository }}/commits/${{env.GIT_BRANCH}}))
             - **Bots branch:** master - ([Commits](${{github.server_url}}/mangosbot-bots/commits/master))
             - **Build log:** [actions/runs/${{github.run_id}}](${{github.server_url}}/${{github.repository}}/actions/runs/${{github.run_id}})
             - [**Download Windows Binaries**](${{github.server_url}}/${{ github.repository }}/releases/download/latest/${{env.ALL_ARCH_NAME}})
@@ -192,10 +188,8 @@ jobs:
           echo "GIT_SHORT_SHA=`echo ${GITHUB_SHA} | cut -c1-8`" >> $GITHUB_ENV
           coreType="cmangos"
           expension="classic"
-          coreBranch="ike3-bots"
           echo "CORE_TYPE=${coreType}" >> $GITHUB_ENV
           echo "EXPENSION_NAME=${expension}" >> $GITHUB_ENV
-          echo "CORE_BRANCH=${coreBranch}" >> $GITHUB_ENV
       - name: Notify
         uses: rjstone/discord-webhook-notify@v1.0.4
         with:
@@ -204,7 +198,7 @@ jobs:
           description: |
             **Windows release failed!**
           details: |
-            - **Core branch:** ${{env.CORE_BRANCH}} - ([Commits](${{github.server_url}}/${{ github.repository }}/commits/${{env.CORE_BRANCH}}))
+            - **Core branch:** ${{env.GIT_BRANCH}} - ([Commits](${{github.server_url}}/${{ github.repository }}/commits/${{env.GIT_BRANCH}}))
             - **Bots branch:** master - ([Commits](${{github.server_url}}/mangosbot-bots/commits/master))
             - **Build log:** [actions/runs/${{github.run_id}}](${{github.server_url}}/${{github.repository}}/actions/runs/${{github.run_id}})
           footer: Release fail
