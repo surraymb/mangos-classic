@@ -1,6 +1,13 @@
 name: Ubuntu build
 
-on: [push]
+# use manual run
+on: [workflow_dispatch]
+
+# use schedule
+#on:
+#  schedule:
+#    # every day at 6am
+#    - cron:  '0 6 * * *'
 
 env:
   # Customize the CMake build type here (Release, Debug, RelWithDebInfo, etc.)
@@ -24,25 +31,33 @@ jobs:
             COMPILER_CC: gcc
             COMPILER_PP: g++
             USE_PCH: ON
-            EXTRA_BUILD: ""
+            EXTRA_BUILD: "-DBUILD_LOGIN_SERVER=OFF -DBUILD_IKE3_BOTS=ON -DBUILD_AHBOT=ON"
 
-          - os: ubuntu-20.04
-            COMPILER_CC: clang
-            COMPILER_PP: clang++
-            USE_PCH: ON
-            EXTRA_BUILD: "-DBUILD_EXTRACTORS=ON -DBUILD_AHBOT=ON -DBUILD_PLAYERBOT=ON "
+          #- os: ubuntu-20.04
+          #  COMPILER_CC: clang
+          #  COMPILER_PP: clang++
+          #  USE_PCH: ON
+          #  EXTRA_BUILD: "-DBUILD_EXTRACTORS=ON -DBUILD_AHBOT=ON -DBUILD_PLAYERBOT=ON"
 
-          - os: ubuntu-20.04
-            COMPILER_CC: clang
-            COMPILER_PP: clang++
-            USE_PCH: OFF
-            EXTRA_BUILD: ""
+          #- os: ubuntu-20.04
+          #  COMPILER_CC: clang
+          #  COMPILER_PP: clang++
+          #  USE_PCH: OFF
+          #  EXTRA_BUILD: ""
 
     steps:
       - name: Checkout
         uses: actions/checkout@v2
         with:
+          ref: ike3-bots
           path: ${{env.REPO_DIR}}
+          
+      - name: Checkout Bots
+        uses: actions/checkout@v2
+        with:
+          ref: master
+          repository: celguar/mangosbot-bots
+          path: "${{env.REPO_DIR}}/src/Modules/Bots"
 
       - name: Create Build Environment
         run: |
@@ -82,7 +97,7 @@ jobs:
           USE_PCH: ${{ matrix.USE_PCH }}
           EXTRA_BUILD: ${{ matrix.EXTRA_BUILD }}
           BOOST_ROOT: "${{env.BOOST_INSTALL_DIR}}/boost/boost"
-        run: cmake -DBoost_ARCHITECTURE=-x64 -DPCH=${{env.USE_PCH}} ${{env.EXTRA_BUILD}}-B ${{env.BUILD_DIR}} -S ${{env.REPO_DIR}}
+        run: cmake -DBoost_ARCHITECTURE=-x64 -DPCH=${{env.USE_PCH}} ${{env.EXTRA_BUILD}} -B ${{env.BUILD_DIR}} -S ${{env.REPO_DIR}}
 
       - name: Build
         env:
@@ -103,20 +118,24 @@ jobs:
         run: |
           echo "GIT_BRANCH=${GITHUB_REF#refs/heads/}" >> $GITHUB_ENV
           echo "GIT_SHORT_SHA=`echo ${GITHUB_SHA} | cut -c1-8`" >> $GITHUB_ENV
+          coreType="cmangos"
+          expension="classic"
+          coreBranch="ike3-bots"
+          echo "CORE_TYPE=${coreType}" >> $GITHUB_ENV
+          echo "EXPENSION_NAME=${expension}" >> $GITHUB_ENV
+          echo "CORE_BRANCH=${coreBranch}" >> $GITHUB_ENV
 
       - name: Notify
         uses: rjstone/discord-webhook-notify@v1.0.4
         with:
           severity: error
-          username: ${{env.EXPENSION_NAME}}-core
+          username: ${{env.CORE_TYPE}}-${{env.EXPENSION_NAME}}
           description: |
-            **Linux buid failed**
+            **Linux build failed!**
           details: |
-            - **Branch:** ${{env.GIT_BRANCH}}
-            - **Pusher:** ${{github.event.pusher.name}}
-            - **Author:** ${{github.event.head_commit.author.name}}
-            - **Commit:** [${{github.repository}}/${{env.GIT_SHORT_SHA}}](${{github.server_url}}/${{ github.repository }}/commit/${{github.sha}})
-            - **Build log:** [actions/runs/${{github.run_id}}](${{github.server_url}}/${{github.repository}}/actions/runs/${{github.run_id}})
-          footer: Next time ${{github.event.pusher.name}}!
-          webhookUrl: ${{ secrets.DISCORD_WEBHOOK }}
-          avatarUrl: https://github.githubassets.com/images/modules/logos_page/Octocat.png
+            - **Core branch:** ${{env.CORE_BRANCH}} - ([Commits](${{github.server_url}}/${{ github.repository }}/commits/${{env.CORE_BRANCH}}))
+            - **Bots branch:** master - ([Commits](${{github.server_url}}/mangosbot-bots/commits/master))
+            - **Build log:** [actions/runs/${{github.run_id}}](${{github.server_url}}/${{github.repository}}/actions/runs/${{github.run_id}}
+          footer: Build fail
+          webhookUrl: ${{ secrets.DISCORD_WEBHOOK_BUILD }}
+          avatarUrl: https://github.githubassets.com/favicons/favicon-failure.png
