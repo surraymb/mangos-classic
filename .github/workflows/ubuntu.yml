@@ -72,7 +72,7 @@ jobs:
         id: cache-boost
         with:
           path: "${{env.BOOST_INSTALL_DIR}}/boost"
-          key: ${{ runner.os }}-${{ hashFiles('.github/workflows/ubuntu.yml') }}
+          key: ${{ runner.os }}-boost
 
       - if: steps.cache-boost.outputs.cache-hit != 'true'
         name: Install boost
