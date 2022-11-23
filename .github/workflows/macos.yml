@@ -1,6 +1,16 @@
 name: MacOs build
 
-on: [push]
+# after every push
+#on: [push]
+
+# use manual run
+on: [workflow_dispatch]
+
+# use schedule
+#on:
+#  schedule:
+#    # every day at 6am
+#    - cron:  '0 6 * * *'
 
 env:
   # Customize the CMake build type here (Release, Debug, RelWithDebInfo, etc.)
