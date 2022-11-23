@@ -57,7 +57,7 @@ jobs:
         with:
           ref: master
           repository: celguar/mangosbot-bots
-          path: "${{env.REPO_DIR}}/src/Modules/Bots"
+          path: "${{env.REPO_DIR}}/src/modules/Bots"
 
       - name: Create Build Environment
         run: |
