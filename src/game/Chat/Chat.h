@@ -754,6 +754,7 @@ class ChatHandler
 #ifdef BUILD_PLAYERBOT
         bool HandlePlayerbotCommand(char* args);
 #endif
+        bool HandleHardcoreCommand(char* args);
 
 #ifdef ENABLE_PLAYERBOTS
         bool HandlePlayerbotCommand(char* args);
