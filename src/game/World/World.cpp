@@ -85,6 +85,11 @@
 #include "RandomPlayerbotMgr.h"
 #endif
 
+#if USE_ACHIEVEMENTS
+#include "Achievements/AchievementMgr.h"
+#include "Achievements/AchievementScriptMgr.h"
+#endif
+
 #include <algorithm>
 #include <mutex>
 #include <cstdarg>
@@ -1271,6 +1276,13 @@ void World::SetInitialWorldSettings()
     sLog.outString(">>> Loot Tables loaded");
     sLog.outString();
 
+#ifdef USE_ACHIEVEMENTS
+    sAchievementStore.Load();
+    sAchievementCategoryStore.Load();
+    sAchievementCriteriaStore.Load();
+    sAchievementMgr.LoadAllData();
+#endif
+
     sLog.outString("Loading Skill Fishing base level requirements...");
     sObjectMgr.LoadFishingBaseSkillLevel();
 
@@ -1297,6 +1309,10 @@ void World::SetInitialWorldSettings()
     sObjectMgr.LoadAreatriggerLocales();
     sLog.outString(">>> Scripts loaded");
     sLog.outString();
+
+#ifdef USE_ACHIEVEMENTS
+    sAchievementScriptMgr.LoadDatabase();
+#endif
 
     sLog.outString("Loading Scripts text locales...");      // must be after Load*Scripts calls
     sScriptMgr.LoadDbScriptStrings();
@@ -1407,6 +1423,10 @@ void World::SetInitialWorldSettings()
 
     // after spellscripts
     sScriptDevAIMgr.CheckScriptNames();
+
+#ifdef USE_ACHIEVEMENTS
+    sAchievementScriptMgr.Initialize();
+#endif
 
     ///- Initialize game time and timers
     sLog.outString("Initialize game time and timers");

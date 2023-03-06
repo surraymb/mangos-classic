@@ -376,7 +376,14 @@ void WorldSession::HandlePageTextQueryOpcode(WorldPacket& recv_data)
     DETAIL_LOG("WORLD: Received opcode CMSG_PAGE_TEXT_QUERY");
 
     uint32 pageID;
-    recv_data >> pageID;
+    ObjectGuid bookGuid;
+    recv_data >> pageID >> bookGuid;
+
+#ifdef USE_ACHIEVEMENTS
+    // reading books
+    if (bookGuid.IsGameObject())
+        GetPlayer()->UpdateAchievementCriteria(ACHIEVEMENT_CRITERIA_TYPE_USE_GAMEOBJECT, bookGuid.GetEntry());
+#endif
 
     while (pageID)
     {
@@ -411,7 +418,6 @@ void WorldSession::HandlePageTextQueryOpcode(WorldPacket& recv_data)
             pageID = pPage->Next_Page;
         }
         SendPacket(data);
-
         DEBUG_LOG("WORLD: Sent SMSG_PAGE_TEXT_QUERY_RESPONSE");
     }
 }

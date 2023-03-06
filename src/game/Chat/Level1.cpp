@@ -420,6 +420,11 @@ bool ChatHandler::HandleNamegoCommand(char* args)
         // make sure player is in world
         if (!target->IsInWorld() || target->IsBeingTeleported())
         {
+            if (!target->IsInWorld())
+                PSendSysMessage("target not in world");
+            if (target->IsBeingTeleported())
+                PSendSysMessage("target is being teleported");
+
             PSendSysMessage(LANG_IS_TELEPORTED, nameLink.c_str());
             SetSentErrorMessage(true);
             return false;

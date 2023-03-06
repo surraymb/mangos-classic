@@ -370,6 +370,10 @@ class BattleGround
             o = m_teamStartLocO[idx];
         }
 
+#ifdef USE_ACHIEVEMENTS
+        virtual bool AllNodesConrolledByTeam(PvpTeamIndex teamId) const { return false; }
+#endif
+
         void SetStartMaxDist(float startMaxDist) { m_startMaxDist = startMaxDist; }
         float GetStartMaxDist() const { return m_startMaxDist; }
 
