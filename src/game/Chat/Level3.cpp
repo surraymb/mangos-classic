@@ -4548,6 +4548,10 @@ bool ChatHandler::HandleResetLevelCommand(char* args)
     if (Pet* pet = target->GetPet())
         pet->SynchronizeLevelWithOwner();
 
+#ifdef USE_ACHIEVEMENTS
+    target->UpdateAchievementCriteria(ACHIEVEMENT_CRITERIA_TYPE_EARN_HONORABLE_KILL);
+#endif
+
     return true;
 }
 
