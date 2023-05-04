@@ -288,7 +288,7 @@ void WorldSession::HandleMoveTeleportAckOpcode(WorldPacket& recv_data)
 
 #ifdef ENABLE_PLAYERBOTS
     // interrupt moving for bot if any
-    if (plMover->GetPlayerbotAI() && !plMover->GetMotionMaster()->GetCurrentMovementGeneratorType() != IDLE_MOTION_TYPE)
+    if (plMover->GetPlayerbotAI() && !plMover->GetMotionMaster()->empty())
     {
         if (MovementGenerator* movgen = plMover->GetMotionMaster()->top())
             movgen->Interrupt(*plMover);
@@ -322,7 +322,7 @@ void WorldSession::HandleMoveTeleportAckOpcode(WorldPacket& recv_data)
 
 #ifdef ENABLE_PLAYERBOTS
     // reset moving for bot if any
-    if (plMover->GetPlayerbotAI() && !plMover->GetMotionMaster()->GetCurrentMovementGeneratorType() != IDLE_MOTION_TYPE)
+    if (plMover->GetPlayerbotAI() && !plMover->GetMotionMaster()->empty())
     {
         if (MovementGenerator* movgen = plMover->GetMotionMaster()->top())
             movgen->Reset(*plMover);
