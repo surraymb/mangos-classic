@@ -436,6 +436,9 @@ void PathFinder::BuildPolyPath(const Vector3& startPos, const Vector3& endPos)
                 buildShotrcut = true;
         }
 
+        if (m_sourceUnit->IsPlayer() && (IsPointHigher(getStartPosition(), getActualEndPosition()) || (m_sourceUnit->GetMap() && m_sourceUnit->GetMap()->IsBattleGround())))
+            buildShotrcut = false;
+
         if (buildShotrcut)
         {
             BuildShortcut();
@@ -944,6 +947,31 @@ void PathFinder::BuildShortcut()
     NormalizePath();
 
     m_type = PATHFIND_SHORTCUT;
+}
+
+bool PathFinder::IsPointHigher(const Vector3& startPos, const Vector3& endPos)
+{
+    float startPoint[3];
+    startPoint[2] = startPos.x;
+    startPoint[0] = startPos.y;
+    startPoint[1] = startPos.z;
+
+    float endPoint[3];
+    endPoint[2] = endPos.x;
+    endPoint[0] = endPos.y;
+    endPoint[1] = endPos.z;
+
+    float distanceToPoly;
+    dtPolyRef startPoly = getPolyByLocation(startPoint, &distanceToPoly);
+    dtPolyRef endPoly = getPolyByLocation(endPoint, &distanceToPoly);
+    if (startPoly == INVALID_POLYREF || endPoly == INVALID_POLYREF)
+        return false;
+
+    // first we have to fix z value before hit test, z is in index 1 of randomPoint
+    dtStatus startResult = m_navMeshQuery->getPolyHeight(startPoly, startPoint, &startPoint[1]);
+    dtStatus endResult = m_navMeshQuery->getPolyHeight(endPoly, endPoint, &endPoint[1]);
+
+    return startPoint[1] < endPoint[1];
 }
 
 void PathFinder::createFilter()
