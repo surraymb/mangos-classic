@@ -21,7 +21,7 @@ extern SQLStorage sAchievementCriteriaStore;
 extern SQLStorage sAchievementStore;
 extern SQLStorage sAchievementCategoryStore;
 
-enum Difficulty
+enum AchievementMapDifficulty
 {
     REGULAR_DIFFICULTY           = 0,
 
