@@ -80,6 +80,7 @@
 
 #include <cmath>
 #include "Hardcore/HardcoreMgr.h"
+#include "Immersive/Immersive.h"
 
 #define ZONE_UPDATE_INTERVAL (1*IN_MILLISECONDS)
 
@@ -2725,6 +2726,8 @@ void Player::GiveXP(uint32 xp, Creature* victim, float groupRate)
 
     uint32 level = GetLevel();
 
+    sImmersive.OnGiveXP(this, xp, victim);
+
     // XP to money conversion processed in Player::RewardQuest
     if (level >= sWorld.getConfig(CONFIG_UINT32_MAX_PLAYER_LEVEL))
         return;
@@ -2763,6 +2766,8 @@ void Player::GiveLevel(uint32 level)
 
     PlayerLevelInfo info;
     sObjectMgr.GetPlayerLevelInfo(getRace(), plClass, level, &info);
+
+    sImmersive.GetPlayerLevelInfo(this, &info);
 
     PlayerClassLevelInfo classInfo;
     sObjectMgr.GetPlayerClassLevelInfo(plClass, level, &classInfo);
@@ -2821,6 +2826,8 @@ void Player::GiveLevel(uint32 level)
 #ifdef USE_ACHIEVEMENTS
     UpdateAchievementCriteria(ACHIEVEMENT_CRITERIA_TYPE_REACH_LEVEL);
 #endif
+
+    sImmersive.OnGiveLevel(this);
 }
 
 void Player::UpdateFreeTalentPoints(bool resetIfNeed)
@@ -2873,6 +2880,7 @@ void Player::InitStatsForLevel(bool reapplyMods)
 
     PlayerLevelInfo info;
     sObjectMgr.GetPlayerLevelInfo(getRace(), plClass, level, &info);
+    sImmersive.GetPlayerLevelInfo(this, &info);
 
     SetUInt32Value(PLAYER_NEXT_LEVEL_XP, sObjectMgr.GetXPForLevel(level));
 
@@ -4496,6 +4504,7 @@ void Player::ResurrectPlayer(float restore_percent, bool applySickness)
             instanceData->OnPlayerResurrect(this);
 
     sHardcoreMgr.OnPlayerRevived(this);
+    sImmersive.OnDeath(this);
 
     if (!applySickness)
         return;
@@ -11795,6 +11804,7 @@ void Player::PrepareGossipMenu(WorldObject* pSource, uint32 menuId, bool forceQu
                 case GOSSIP_OPTION_PETITIONER:
                 case GOSSIP_OPTION_TABARDDESIGNER:
                 case GOSSIP_OPTION_AUCTIONEER:
+                case GOSSIP_OPTION_IMMERSIVE:
                     break;                                  // no checks
                 case GOSSIP_OPTION_BOT:
                 {
@@ -12130,6 +12140,11 @@ void Player::OnGossipSelect(WorldObject* pSource, uint32 gossipListId)
             return;
         }
 #endif
+        case GOSSIP_OPTION_IMMERSIVE:
+        {
+            sImmersive.OnGossipSelect(this, pSource, gossipListId, &menuData);
+            break;
+        }
     }
 
     if (pMenuData && menuData.m_gAction_script)
@@ -12968,6 +12983,8 @@ void Player::RewardQuest(Quest const* pQuest, uint32 reward, Object* questGiver,
 
     // resend quests status directly
     SendQuestGiverStatusMultiple();
+
+    sImmersive.OnRewardQuest(this, pQuest);
 }
 
 bool Player::IsQuestExplored(uint32 quest_id) const
@@ -20251,7 +20268,7 @@ void Player::HandleFall(MovementInfo const& movementInfo)
 
     // Players with low fall distance, Feather Fall or physical immunity (charges used) are ignored
     // 14.57 can be calculated by resolving damageperc formula below to 0
-    if (z_diff >= 14.57f && !IsDead() && !IsGameMaster() && !HasMovementFlag(MOVEFLAG_ONTRANSPORT) &&
+    if (z_diff >= 4.57f && z_diff >= 14.57f && !IsDead() && !IsGameMaster() && !HasMovementFlag(MOVEFLAG_ONTRANSPORT) &&
             !HasAuraType(SPELL_AURA_HOVER) && !HasAuraType(SPELL_AURA_FEATHER_FALL) &&
             !IsImmuneToDamage(SPELL_SCHOOL_MASK_NORMAL))
     {
@@ -20259,6 +20276,7 @@ void Player::HandleFall(MovementInfo const& movementInfo)
         int32 safe_fall = GetTotalAuraModifier(SPELL_AURA_SAFE_FALL);
 
         float damageperc = 0.018f * (z_diff - safe_fall) - 0.2426f;
+        damageperc = sImmersive.GetFallDamage(z_diff - safe_fall, damageperc);
 
 #ifdef USE_ACHIEVEMENTS
         uint32 final_damage = 0;
