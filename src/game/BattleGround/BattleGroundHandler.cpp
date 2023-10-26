@@ -96,6 +96,14 @@ void WorldSession::HandleBattlemasterJoinOpcode(WorldPacket& recv_data)
     recv_data >> joinAsGroup;                               // join as group
 
     BattleGroundTypeId bgTypeId = GetBattleGroundTypeIdByMapId(mapId);
+	
+	
+	// If GUID over 4500 it's a player so transform join into join as group for AV raids. cannot join solo anymore - fix
+	uint32 pguid = _player->GetGUID();
+
+    if (pguid > 4500) {
+        joinAsGroup = true;
+    }
 
     if (bgTypeId == BATTLEGROUND_TYPE_NONE)
     {
