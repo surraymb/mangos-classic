@@ -449,30 +449,11 @@ bool ChatHandler::HandleGPSCommandSimple(char* args)
     uint32 have_vmap = GridMap::ExistVMap(obj->GetMapId(), gx, gy) ? 1 : 0;
 
     TerrainInfo const* terrain = obj->GetTerrain();
-    /*
-    if (have_vmap)
-    {
-        if (terrain->IsOutdoors(obj->GetPositionX(), obj->GetPositionY(), obj->GetPositionZ()))
-            PSendSysMessage("You are OUTdoor");
-        else
-            PSendSysMessage("You are INdoor");
-    }
-    else PSendSysMessage("no VMAP available for area info");
-    */
     AreaNameInfo nameInfo = obj->GetAreaName(GetSessionDbcLocale());
     std::string wmoAreaOverride = "";
     if (nameInfo.wmoNameOverride)
         wmoAreaOverride = "WMOArea Override: (" + std::string(nameInfo.wmoNameOverride) + ")";
-    /*
-    PSendSysMessage(LANG_MAP_POSITION,
-                    obj->GetMapId(), (mapEntry ? mapEntry->name[GetSessionDbcLocale()] : "<unknown>"),
-                    zone_id, (zoneEntry ? zoneEntry->area_name[GetSessionDbcLocale()] : "<unknown>"),
-                    area_id, nameInfo.areaName, wmoAreaOverride.c_str(),
-                    obj->GetPositionX(), obj->GetPositionY(), obj->GetPositionZ(), obj->GetOrientation(),
-                    cell.GridX(), cell.GridY(), cell.CellX(), cell.CellY(), obj->GetInstanceId(),
-                    zone_x, zone_y, ground_z, floor_z, have_map, have_vmap);
-*/
-//replace with simplified version for faster coordinate collection
+
     PSendSysMessage(LANG_MAP_POSITION,
         obj->GetMapId(), (mapEntry ? mapEntry->name[GetSessionDbcLocale()] : "<unknown>"),
         zone_id, (zoneEntry ? zoneEntry->area_name[GetSessionDbcLocale()] : "<unknown>"),
@@ -495,12 +476,7 @@ bool ChatHandler::HandleGPSCommandSimple(char* args)
     if (nameInfo.wmoNameOverride)
         wmoAreaOverride = "WMOArea Override: " + std::string(nameInfo.wmoNameOverride);
     DEBUG_LOG(GetMangosString(LANG_MAP_POSITION),
-        obj->GetMapId(), (mapEntry ? mapEntry->name[sWorld.GetDefaultDbcLocale()] : "<unknown>"),
-        zone_id, (zoneEntry ? zoneEntry->area_name[sWorld.GetDefaultDbcLocale()] : "<unknown>"),
-        area_id, nameInfo.areaName, wmoAreaOverride.c_str(),
-        obj->GetPositionX(), obj->GetPositionY(), obj->GetPositionZ(), obj->GetOrientation(),
-        cell.GridX(), cell.GridY(), cell.CellX(), cell.CellY(), obj->GetInstanceId(),
-        zone_x, zone_y, ground_z, floor_z, have_map, have_vmap);
+        obj->GetPositionX(), obj->GetPositionY(), obj->GetPositionZ());
 
     GridMapLiquidData liquid_status;
     GridMapLiquidStatus res = terrain->getLiquidStatus(obj->GetPositionX(), obj->GetPositionY(), obj->GetPositionZ(), MAP_ALL_LIQUIDS, &liquid_status);
