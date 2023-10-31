@@ -327,7 +327,6 @@ bool ChatHandler::HandleGPSCommand(char* args)
     uint32 have_vmap = GridMap::ExistVMap(obj->GetMapId(), gx, gy) ? 1 : 0;
 
     TerrainInfo const* terrain = obj->GetTerrain();
-
     if (have_vmap)
     {
         if (terrain->IsOutdoors(obj->GetPositionX(), obj->GetPositionY(), obj->GetPositionZ()))
@@ -336,7 +335,6 @@ bool ChatHandler::HandleGPSCommand(char* args)
             PSendSysMessage("You are INdoor");
     }
     else PSendSysMessage("no VMAP available for area info");
-
     AreaNameInfo nameInfo = obj->GetAreaName(GetSessionDbcLocale());
     std::string wmoAreaOverride = "";
     if (nameInfo.wmoNameOverride)
@@ -372,6 +370,137 @@ bool ChatHandler::HandleGPSCommand(char* args)
               obj->GetPositionX(), obj->GetPositionY(), obj->GetPositionZ(), obj->GetOrientation(),
               cell.GridX(), cell.GridY(), cell.CellX(), cell.CellY(), obj->GetInstanceId(),
               zone_x, zone_y, ground_z, floor_z, have_map, have_vmap);
+
+    GridMapLiquidData liquid_status;
+    GridMapLiquidStatus res = terrain->getLiquidStatus(obj->GetPositionX(), obj->GetPositionY(), obj->GetPositionZ(), MAP_ALL_LIQUIDS, &liquid_status);
+    if (res)
+    {
+        PSendSysMessage(LANG_LIQUID_STATUS, liquid_status.level, liquid_status.depth_level, liquid_status.type_flags, uint32(res));
+    }
+
+    // Additional vmap debugging help
+#ifdef _DEBUG_VMAPS
+    PSendSysMessage("Static terrain height (maps only): %f", obj->GetTerrain()->GetHeightStatic(obj->GetPositionX(), obj->GetPositionY(), obj->GetPositionZ(), false));
+
+    if (VMAP::IVMapManager* vmgr = VMAP::VMapFactory::createOrGetVMapManager())
+        PSendSysMessage("Vmap Terrain Height %f", vmgr->getHeight(obj->GetMapId(), obj->GetPositionX(), obj->GetPositionY(), obj->GetPositionZ() + 2.0f, 10000.0f));
+
+    PSendSysMessage("Static map height (maps and vmaps): %f", obj->GetTerrain()->GetHeightStatic(obj->GetPositionX(), obj->GetPositionY(), obj->GetPositionZ()));
+#endif
+
+    return true;
+}
+
+bool ChatHandler::HandleGPSCommandSimple(char* args)
+{
+    WorldObject* obj = nullptr;
+    if (*args)
+    {
+        if (ObjectGuid guid = ExtractGuidFromLink(&args))
+            obj = (WorldObject*)m_session->GetPlayer()->GetObjectByTypeMask(guid, TYPEMASK_CREATURE_OR_GAMEOBJECT);
+
+        if (!obj)
+        {
+            SendSysMessage(LANG_PLAYER_NOT_FOUND);
+            SetSentErrorMessage(true);
+            return false;
+        }
+    }
+    else
+    {
+        obj = getSelectedUnit();
+
+        if (!obj)
+        {
+            SendSysMessage(LANG_SELECT_CHAR_OR_CREATURE);
+            SetSentErrorMessage(true);
+            return false;
+        }
+    }
+    CellPair cell_val = MaNGOS::ComputeCellPair(obj->GetPositionX(), obj->GetPositionY());
+    Cell cell(cell_val);
+
+    uint32 zone_id, area_id;
+    obj->GetZoneAndAreaId(zone_id, area_id);
+
+    MapEntry const* mapEntry = sMapStore.LookupEntry(obj->GetMapId());
+    AreaTableEntry const* zoneEntry = GetAreaEntryByAreaID(zone_id);
+    AreaTableEntry const* areaEntry = GetAreaEntryByAreaID(area_id);
+
+    float zone_x = obj->GetPositionX();
+    float zone_y = obj->GetPositionY();
+
+    if (!Map2ZoneCoordinates(zone_x, zone_y, zone_id))
+    {
+        zone_x = 0;
+        zone_y = 0;
+    }
+
+    Map const* map = obj->GetMap();
+    float ground_z = map->GetHeight(obj->GetPositionX(), obj->GetPositionY(), MAX_HEIGHT);
+    float floor_z = map->GetHeight(obj->GetPositionX(), obj->GetPositionY(), obj->GetPositionZ());
+
+    GridPair p = MaNGOS::ComputeGridPair(obj->GetPositionX(), obj->GetPositionY());
+
+    int gx = 63 - p.x_coord;
+    int gy = 63 - p.y_coord;
+
+    uint32 have_map = GridMap::ExistMap(obj->GetMapId(), gx, gy) ? 1 : 0;
+    uint32 have_vmap = GridMap::ExistVMap(obj->GetMapId(), gx, gy) ? 1 : 0;
+
+    TerrainInfo const* terrain = obj->GetTerrain();
+    /*
+    if (have_vmap)
+    {
+        if (terrain->IsOutdoors(obj->GetPositionX(), obj->GetPositionY(), obj->GetPositionZ()))
+            PSendSysMessage("You are OUTdoor");
+        else
+            PSendSysMessage("You are INdoor");
+    }
+    else PSendSysMessage("no VMAP available for area info");
+    */
+    AreaNameInfo nameInfo = obj->GetAreaName(GetSessionDbcLocale());
+    std::string wmoAreaOverride = "";
+    if (nameInfo.wmoNameOverride)
+        wmoAreaOverride = "WMOArea Override: (" + std::string(nameInfo.wmoNameOverride) + ")";
+    /*
+    PSendSysMessage(LANG_MAP_POSITION,
+                    obj->GetMapId(), (mapEntry ? mapEntry->name[GetSessionDbcLocale()] : "<unknown>"),
+                    zone_id, (zoneEntry ? zoneEntry->area_name[GetSessionDbcLocale()] : "<unknown>"),
+                    area_id, nameInfo.areaName, wmoAreaOverride.c_str(),
+                    obj->GetPositionX(), obj->GetPositionY(), obj->GetPositionZ(), obj->GetOrientation(),
+                    cell.GridX(), cell.GridY(), cell.CellX(), cell.CellY(), obj->GetInstanceId(),
+                    zone_x, zone_y, ground_z, floor_z, have_map, have_vmap);
+*/
+//replace with simplified version for faster coordinate collection
+    PSendSysMessage(LANG_MAP_POSITION,
+        obj->GetMapId(), (mapEntry ? mapEntry->name[GetSessionDbcLocale()] : "<unknown>"),
+        zone_id, (zoneEntry ? zoneEntry->area_name[GetSessionDbcLocale()] : "<unknown>"),
+        area_id, nameInfo.areaName, wmoAreaOverride.c_str(),
+        obj->GetPositionX(), obj->GetPositionY(), obj->GetPositionZ());
+
+    if (GenericTransport* transport = obj->GetTransport())
+    {
+        Position pos = obj->GetPosition(transport);
+        PSendSysMessage("Transport coords: %f %f %f %f", pos.x, pos.y, pos.z, pos.o);
+    }
+
+    DEBUG_LOG("Player %s GPS call for %s '%s' (%s: %u):",
+        m_session ? GetNameLink().c_str() : GetMangosString(LANG_CONSOLE_COMMAND),
+        (obj->GetTypeId() == TYPEID_PLAYER ? "player" : "creature"), obj->GetName(),
+        (obj->GetTypeId() == TYPEID_PLAYER ? "GUID" : "Entry"), (obj->GetTypeId() == TYPEID_PLAYER ? obj->GetGUIDLow() : obj->GetEntry()));
+
+    nameInfo = obj->GetAreaName(sWorld.GetDefaultDbcLocale());
+    wmoAreaOverride = "";
+    if (nameInfo.wmoNameOverride)
+        wmoAreaOverride = "WMOArea Override: " + std::string(nameInfo.wmoNameOverride);
+    DEBUG_LOG(GetMangosString(LANG_MAP_POSITION),
+        obj->GetMapId(), (mapEntry ? mapEntry->name[sWorld.GetDefaultDbcLocale()] : "<unknown>"),
+        zone_id, (zoneEntry ? zoneEntry->area_name[sWorld.GetDefaultDbcLocale()] : "<unknown>"),
+        area_id, nameInfo.areaName, wmoAreaOverride.c_str(),
+        obj->GetPositionX(), obj->GetPositionY(), obj->GetPositionZ(), obj->GetOrientation(),
+        cell.GridX(), cell.GridY(), cell.CellX(), cell.CellY(), obj->GetInstanceId(),
+        zone_x, zone_y, ground_z, floor_z, have_map, have_vmap);
 
     GridMapLiquidData liquid_status;
     GridMapLiquidStatus res = terrain->getLiquidStatus(obj->GetPositionX(), obj->GetPositionY(), obj->GetPositionZ(), MAP_ALL_LIQUIDS, &liquid_status);
