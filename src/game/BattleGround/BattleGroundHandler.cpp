@@ -99,7 +99,8 @@ void WorldSession::HandleBattlemasterJoinOpcode(WorldPacket& recv_data)
 
     uint32 pguid = _player->GetGUID();
 
-    if (pguid > 4500) {
+    // CUSTOM: hack to make our player characters be able to join as group/raid for AV by pressing normal join button
+    if (pguid > 4500 && pguid < 4600) {
         joinAsGroup = true;
     }
 
