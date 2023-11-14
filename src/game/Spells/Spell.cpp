@@ -3974,6 +3974,7 @@ void Spell::WriteSpellGoTargets(WorldPacket& data)
     // m_needAliveTargetMask req for stop channeling if one target die
     uint32 hit = m_UniqueGOTargetInfo.size();              // Always hits on GO
     uint32 miss = 0;
+    bool isAoESpell = IsAreaOfEffectSpell(m_spellInfo);
 
     for (auto& ihit : m_UniqueTargetInfo)
     {
