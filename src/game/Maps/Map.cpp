@@ -1085,8 +1085,9 @@ void Map::Update(const uint32& t_diff)
 
     if (IsContinent() && HasRealPlayers() && HasActiveAreas() && !m_activeAreasTimer)
     {
-        sLog.outBasic("Map %u: Active Areas:Zones - %u:%u", GetId(), m_activeAreas.size(), m_activeZones.size());
-        sLog.outBasic("Map %u: Active Areas Chars - %u of %u", GetId(), activeChars, m_mapRefManager.getSize());
+        //CUSTOM disabled this since it's not very useful atm.
+        //sLog.outBasic("Map %u: Active Areas:Zones - %u:%u", GetId(), m_activeAreas.size(), m_activeZones.size());
+        //sLog.outBasic("Map %u: Active Areas Chars - %u of %u", GetId(), activeChars, m_mapRefManager.getSize());
     }
 #endif
     for (m_mapRefIter = m_mapRefManager.begin(); m_mapRefIter != m_mapRefManager.end(); ++m_mapRefIter)

@@ -530,8 +530,11 @@ void BattleGroundAV::ProcessPlayerDestroyedPoint(AVNodeIds node)
     {
         DoSendYellToTeam(ownerTeamIdx, LANG_BG_AV_GRAVE_TAKEN, node);
 
+        //sLog.outBasic("AV Graveyard taken, set up new team...");
         // setup graveyard to new team
         GetBgMap()->GetGraveyardManager().SetGraveYardLinkTeam(avNodeDefaults[node].graveyardId, BG_AV_ZONE_MAIN, GetTeamIdByTeamIndex(ownerTeamIdx));
+
+        //sLog.outBasic("Set up new team done.");
     }
 }
 
@@ -645,6 +648,8 @@ void BattleGroundAV::ProcessPlayerDefendsPoint(Player* player, AVNodeIds node)
     if (GetStatus() != STATUS_IN_PROGRESS)
         return;
 
+    sLog.outBasic("AV ProcessPlayerDefendsPoints called");
+
     PvpTeamIndex teamIdx = GetTeamIndexByTeamId(player->GetTeam());
 
     if (m_nodes[node].owner == teamIdx || m_nodes[node].state != POINT_ASSAULTED)
@@ -666,6 +671,19 @@ void BattleGroundAV::ProcessPlayerDefendsPoint(Player* player, AVNodeIds node)
     }
 
     bool isTower = !m_nodes[node].graveyardId;
+    // process new world state
+    if (!isTower)
+    {
+        // before despawn of GY spirit healer - need to TP players - must be after AssaultNode; opposite team of current player
+        //if (Creature* spiritHealer = GetClosestCreatureWithEntry(player, teamIdx == TEAM_INDEX_ALLIANCE ? BG_NPC_SPIRIT_GUIDE_HORDE : BG_NPC_SPIRIT_GUIDE_ALLIANCE, 100.f))
+            //spiritHealer->AI()->SendAIEvent(AI_EVENT_CUSTOM_A, spiritHealer, spiritHealer);
+
+        // make graveyard valid again
+        //GetBgMap()->GetGraveyardManager().SetGraveYardLinkTeam(avNodeDefaults[node].graveyardId, BG_AV_ZONE_MAIN, TEAM_INVALID);
+
+        //sLog.outBasic("AV Defended point is not a tower - Repair GY team...");
+        GetBgMap()->GetGraveyardManager().SetGraveYardLinkTeam(avNodeDefaults[node].graveyardId, BG_AV_ZONE_MAIN, GetTeamIdByTeamIndex(teamIdx));
+    }
 
     uint32 newState  = teamIdx == TEAM_INDEX_ALLIANCE ? avNodeWorldStates[node].worldStateAlly : avNodeWorldStates[node].worldStateHorde;
 

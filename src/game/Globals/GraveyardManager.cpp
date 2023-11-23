@@ -228,9 +228,13 @@ uint32 GraveyardManager::GraveyardLinkKey(uint32 locationId, uint32 linkKind)
  */
 bool GraveyardManager::AddGraveYardLink(uint32 id, uint32 locId, uint32 linkKind, Team team, bool inDB)
 {
+    //sLog.outBasic("Adding graveyard link...");
     uint32 locKey = GraveyardLinkKey(locId, linkKind);
     if (FindGraveYardData(m_graveyardMap, id, locKey))
+    {
+        //sLog.outBasic("AddGraveYardLink Failed to find graveyard data, aborting");
         return false;
+    }
 
     GraveYardData data;
     data.safeLocId = id;
@@ -241,28 +245,53 @@ bool GraveyardManager::AddGraveYardLink(uint32 id, uint32 locId, uint32 linkKind
         WorldDatabase.PExecuteLog("INSERT INTO game_graveyard_zone "
             "(id, ghost_loc, link_kind, faction) VALUES "
             "('%u', '%u','%u', '%u')", id, locId, linkKind, uint32(team));
-
+    sLog.outBasic("AddGraveYardLink apparent success? returning true");
     return true;
 }
 
 void GraveyardManager::SetGraveYardLinkTeam(uint32 id, uint32 locKey, Team team)
 {
+    //sLog.outBasic("SetGraveYardLinkTeam Starting....");
     auto bounds = m_graveyardMap.equal_range(locKey);
+
+    //if (team == TEAM_BOTH_ALLOWED)
+    //    sLog.outBasic("Team is BOTH ALLOWED");
+
+    //if (team == TEAM_NONE)
+    //    sLog.outBasic("Team is NONE");
+
+    //if (team == TEAM_INVALID)
+    //    sLog.outBasic("Team is TEAM INVALID");
+
+    //if (team == HORDE)
+    //    sLog.outBasic("Team is HORDE");
+
+    //if (team == ALLIANCE)
+    //    sLog.outBasic("Team is ALLIANCE");
 
     for (GraveYardMap::iterator itr = bounds.first; itr != bounds.second; ++itr)
     {
         GraveYardData& data = itr->second;
+        //sLog.outBasic("Iteration in progress");
 
         // skip not matching safezone id
         if (data.safeLocId != id)
+        {
+            //sLog.outBasic("not matching safezone id - skipping to next loop");
             continue;
+        }
+
 
         data.team = team;                                   // Validate link
+        //sLog.outBasic("Iterations done and team set, apparent success.");
         return;
     }
 
     if (team == TEAM_INVALID)
+    {
+        sLog.outBasic("team == TEAM_INVALID, aborting");
         return;
+    }
 
     // No graveyard link found but one was expected. Log it and add one to
     // prevent further errors.
@@ -270,6 +299,7 @@ void GraveyardManager::SetGraveYardLinkTeam(uint32 id, uint32 locKey, Team team)
     uint32 linkKind = locKey & 0x80000000;
     sLog.outErrorDb("ObjectMgr::SetGraveYardLinkTeam called for safeLoc %u, "
         "locKey %u, but no graveyard link for this found in database.", id, locKey);
+    //sLog.outBasic("No graveyard link found in database, creating link.");
     AddGraveYardLink(id, locId, linkKind, team);
 }
 
