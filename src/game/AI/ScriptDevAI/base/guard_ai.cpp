@@ -55,9 +55,10 @@ void guardAI::Aggro(Unit* who)
 
 void guardAI::JustDied(Unit* killer)
 {
+    // disabled this since it seems to crash the server in certain situations (GetCharmer GUID is the problem?)
     // Send Zone Under Attack message to the LocalDefense and WorldDefense Channels
-    if (Player* pPlayer = killer->GetBeneficiaryPlayer())
-        m_creature->SendZoneUnderAttackMessage(pPlayer);
+    //if (Player* pPlayer = killer->GetBeneficiaryPlayer())
+    //    m_creature->SendZoneUnderAttackMessage(pPlayer);
 }
 
 void guardAI::UpdateAI(const uint32 diff)
