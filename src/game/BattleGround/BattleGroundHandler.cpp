@@ -97,6 +97,12 @@ void WorldSession::HandleBattlemasterJoinOpcode(WorldPacket& recv_data)
 
     BattleGroundTypeId bgTypeId = GetBattleGroundTypeIdByMapId(mapId);
 
+    uint32 pguid = _player->GetGUID();
+
+    if (pguid > 4500 && pguid < 4600) {
+        joinAsGroup = true;
+    }
+
     if (bgTypeId == BATTLEGROUND_TYPE_NONE)
     {
         sLog.outError("Battleground: invalid bgtype (%u) received. possible cheater? player guid %u", bgTypeId, _player->GetGUIDLow());
