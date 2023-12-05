@@ -1916,9 +1916,9 @@ void Player::ToggleAFK()
     if (GetGroup())
         SetGroupUpdateFlag(GROUP_UPDATE_FLAG_STATUS);
 
-    // afk player not allowed in battleground
-    if (isAFK() && InBattleGround() && !IsGameMaster())
-        LeaveBattleground();
+    // afk player not allowed in battleground - yes they are!!
+    //if (isAFK() && InBattleGround() && !IsGameMaster())
+    //    LeaveBattleground();
 }
 
 void Player::ToggleDND()
