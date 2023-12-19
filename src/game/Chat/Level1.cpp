@@ -393,6 +393,22 @@ bool ChatHandler::HandleGPSCommand(char* args)
     return true;
 }
 
+bool ChatHandler::HandleGPSCommandSimple(char* args)
+{
+    WorldObject* obj = getSelectedUnit();
+    if (!obj)
+    {
+        SendSysMessage(LANG_SELECT_CHAR_OR_CREATURE);
+        SetSentErrorMessage(true);
+        return false;
+    }
+
+    PSendSysMessage("%f %f %f", obj->GetPositionX(), obj->GetPositionY(), obj->GetPositionZ());
+
+    return true;
+}
+
+
 // Summon Player
 bool ChatHandler::HandleNamegoCommand(char* args)
 {
